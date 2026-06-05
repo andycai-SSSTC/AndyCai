@@ -1,0 +1,230 @@
+﻿<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>登山社團報名系統</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-art" aria-hidden="true">
+        <div class="sun"></div>
+        <div class="ridge ridge-back"></div>
+        <div class="ridge ridge-front"></div>
+      </div>
+      <div class="header-content">
+        <p class="eyebrow">Mountain Club Registration</p>
+        <h1>登山社團報名系統</h1>
+        <p>社員可許願想去的山、登記可參加時間、自助團繳費名冊；管理者可維護活動補助款與設備補助款。所有資料同步到 Firebase。</p>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <section class="summary-grid" aria-label="系統摘要">
+        <article class="summary-card">
+          <span>許願山岳</span>
+          <strong id="wishCount">0</strong>
+        </article>
+        <article class="summary-card">
+          <span>報名人數</span>
+          <strong id="signupCount">0</strong>
+        </article>
+        <article class="summary-card">
+          <span>繳費名冊</span>
+          <strong id="paymentCount">0</strong>
+        </article>
+        <article class="summary-card subsidy">
+          <span>活動剩餘補助款</span>
+          <strong id="subsidyTotal">NT$ 0</strong>
+          <small id="subsidyUpdatedAt">尚未更新</small>
+        </article>
+        <article class="summary-card equipment">
+          <span>設備剩餘補助款</span>
+          <strong id="equipmentSubsidyTotal">NT$ 0</strong>
+          <small id="equipmentSubsidyUpdatedAt">尚未更新</small>
+        </article>
+      </section>
+
+      <section id="statusBar" class="status-bar">正在連線 Firebase...</section>
+
+      <section class="workspace">
+        <div class="panel">
+          <div class="panel-heading">
+            <h2>我要許願</h2>
+            <p>提出想去的山，方便社團統整熱門路線。</p>
+          </div>
+          <form id="wishForm" class="form-grid">
+            <label>
+              發想人
+              <input id="wishName" type="text" placeholder="例如：阿翔" required />
+            </label>
+            <label>
+              想去的山
+              <input id="mountainName" type="text" placeholder="例如：玉山、雪山、合歡山" required />
+            </label>
+            <label class="full">
+              備註
+              <textarea id="wishNote" rows="3" placeholder="路線、難度、想去原因"></textarea>
+            </label>
+            <button type="submit">送出許願</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel-heading">
+            <h2>我要報名</h2>
+            <p>登記姓名、想去時間與偏好，方便主揪安排。</p>
+          </div>
+          <form id="signupForm" class="form-grid">
+            <label>
+              報名人
+              <input id="signupName" type="text" placeholder="例如：小美" required />
+            </label>
+            <label>
+              想去時間
+              <input id="signupDate" type="date" required />
+            </label>
+            <label>
+              偏好山岳
+              <input id="signupMountain" type="text" placeholder="例如：合歡山" />
+            </label>
+            <label class="full">
+              聯絡方式或備註
+              <input id="signupNote" type="text" placeholder="例如：可開車、可週六、Line ID" />
+            </label>
+            <button type="submit">新增報名</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel-heading">
+            <h2>自助團繳費名冊</h2>
+            <p>登記自助團活動、金額與繳費狀態。</p>
+          </div>
+          <form id="paymentForm" class="form-grid">
+            <label>
+              姓名
+              <input id="paymentName" type="text" placeholder="例如：小美" required />
+            </label>
+            <label>
+              活動或山岳
+              <input id="paymentTrip" type="text" placeholder="例如：合歡山自助團" required />
+            </label>
+            <label>
+              繳費金額
+              <input id="paymentAmount" type="number" min="0" step="1" placeholder="例如：2500" required />
+            </label>
+            <label>
+              繳費日期
+              <input id="paymentDate" type="date" />
+            </label>
+            <label>
+              繳費狀態
+              <select id="paymentStatus">
+                <option value="已繳">已繳</option>
+                <option value="未繳">未繳</option>
+                <option value="部分繳">部分繳</option>
+              </select>
+            </label>
+            <label class="full">
+              備註
+              <input id="paymentNote" type="text" placeholder="例如：現金、轉帳末五碼、待確認" />
+            </label>
+            <button type="submit">新增繳費紀錄</button>
+          </form>
+        </div>
+
+        <div class="panel admin-panel">
+          <div class="panel-heading">
+            <h2>活動補助款管理</h2>
+            <p>管理者輸入密碼後才能更新活動剩餘補助款。</p>
+          </div>
+          <form id="subsidyForm" class="form-grid">
+            <label>
+              管理密碼
+              <input id="adminPassword" type="password" inputmode="numeric" placeholder="請輸入密碼" required />
+            </label>
+            <label>
+              活動剩餘補助款
+              <input id="subsidyAmount" type="number" min="0" step="1" placeholder="例如：12000" required />
+            </label>
+            <label class="full">
+              更新說明
+              <input id="subsidyMemo" type="text" placeholder="例如：扣除交通補助後更新" />
+            </label>
+            <button type="submit">更新活動補助款</button>
+            <p id="adminMessage" class="form-message" role="status"></p>
+          </form>
+        </div>
+
+        <div class="panel admin-panel">
+          <div class="panel-heading">
+            <h2>設備補助款管理</h2>
+            <p>管理者輸入密碼後才能更新設備剩餘補助款。</p>
+          </div>
+          <form id="equipmentSubsidyForm" class="form-grid">
+            <label>
+              管理密碼
+              <input id="equipmentAdminPassword" type="password" inputmode="numeric" placeholder="請輸入密碼" required />
+            </label>
+            <label>
+              設備剩餘補助款
+              <input id="equipmentSubsidyAmount" type="number" min="0" step="1" placeholder="例如：8000" required />
+            </label>
+            <label class="full">
+              更新說明
+              <input id="equipmentSubsidyMemo" type="text" placeholder="例如：購買爐具後更新" />
+            </label>
+            <button type="submit">更新設備補助款</button>
+            <p id="equipmentAdminMessage" class="form-message" role="status"></p>
+          </form>
+        </div>
+      </section>
+
+      <section class="lists">
+        <div class="list-panel">
+          <div class="panel-heading compact">
+            <h2>山岳許願清單</h2>
+            <button id="clearWishes" class="ghost-button" type="button">清空</button>
+          </div>
+          <div id="wishList" class="entry-list empty"></div>
+        </div>
+
+        <div class="list-panel">
+          <div class="panel-heading compact">
+            <h2>報名清單</h2>
+            <button id="clearSignups" class="ghost-button" type="button">清空</button>
+          </div>
+          <div id="signupList" class="entry-list empty"></div>
+        </div>
+
+        <div class="list-panel wide-panel">
+          <div class="panel-heading compact">
+            <h2>自助團繳費名冊</h2>
+            <button id="clearPayments" class="ghost-button" type="button">清空</button>
+          </div>
+          <div id="paymentList" class="entry-list empty"></div>
+        </div>
+
+        <div class="list-panel subsidy-history-panel">
+          <div class="panel-heading compact">
+            <h2>活動補助款更新紀錄</h2>
+            <button id="clearSubsidyHistory" class="ghost-button" type="button">清空</button>
+          </div>
+          <div id="subsidyHistoryList" class="entry-list empty"></div>
+        </div>
+
+        <div class="list-panel subsidy-history-panel">
+          <div class="panel-heading compact">
+            <h2>設備補助款更新紀錄</h2>
+            <button id="clearEquipmentSubsidyHistory" class="ghost-button" type="button">清空</button>
+          </div>
+          <div id="equipmentSubsidyHistoryList" class="entry-list empty"></div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
