@@ -16,7 +16,7 @@
       <div class="header-content">
         <p class="eyebrow">Mountain Club Registration</p>
         <h1>登山社團報名系統</h1>
-        <p>社員可許願想去的山、登記可參加時間、自助團繳費名冊；管理者可維護活動補助款與設備補助款。所有資料同步到 Firebase。</p>
+        <p>社員可許願想去的山、登記可參加時間、自助團繳費名冊；管理者登入後可維護活動補助款與設備補助款。所有資料同步到 Firebase。</p>
       </div>
     </header>
 
@@ -47,6 +47,28 @@
       </section>
 
       <section id="statusBar" class="status-bar">正在連線 Firebase...</section>
+
+      <section class="admin-login-panel panel">
+        <div class="panel-heading compact">
+          <div>
+            <h2>管理者登入</h2>
+            <p id="adminStateText">尚未登入。登入後才能更新補助款與清空資料。</p>
+          </div>
+          <button id="adminLogout" class="ghost-button hidden" type="button">登出</button>
+        </div>
+        <form id="adminLoginForm" class="form-grid admin-login-form">
+          <label>
+            管理者 Email
+            <input id="adminEmail" type="email" placeholder="andy.cai@ssstc.com" required />
+          </label>
+          <label>
+            密碼
+            <input id="adminLoginPassword" type="password" placeholder="Firebase Auth 密碼" required />
+          </label>
+          <button type="submit">登入管理</button>
+          <p id="loginMessage" class="form-message" role="status"></p>
+        </form>
+      </section>
 
       <section class="workspace">
         <div class="panel">
@@ -135,16 +157,12 @@
           </form>
         </div>
 
-        <div class="panel admin-panel">
+        <div class="panel admin-panel admin-only hidden">
           <div class="panel-heading">
             <h2>活動補助款管理</h2>
-            <p>管理者輸入密碼後才能更新活動剩餘補助款。</p>
+            <p>管理者登入後才能更新活動剩餘補助款。</p>
           </div>
           <form id="subsidyForm" class="form-grid">
-            <label>
-              管理密碼
-              <input id="adminPassword" type="password" inputmode="numeric" placeholder="請輸入密碼" required />
-            </label>
             <label>
               活動剩餘補助款
               <input id="subsidyAmount" type="number" min="0" step="1" placeholder="例如：12000" required />
@@ -158,16 +176,12 @@
           </form>
         </div>
 
-        <div class="panel admin-panel">
+        <div class="panel admin-panel admin-only hidden">
           <div class="panel-heading">
             <h2>設備補助款管理</h2>
-            <p>管理者輸入密碼後才能更新設備剩餘補助款。</p>
+            <p>管理者登入後才能更新設備剩餘補助款。</p>
           </div>
           <form id="equipmentSubsidyForm" class="form-grid">
-            <label>
-              管理密碼
-              <input id="equipmentAdminPassword" type="password" inputmode="numeric" placeholder="請輸入密碼" required />
-            </label>
             <label>
               設備剩餘補助款
               <input id="equipmentSubsidyAmount" type="number" min="0" step="1" placeholder="例如：8000" required />
@@ -186,7 +200,7 @@
         <div class="list-panel">
           <div class="panel-heading compact">
             <h2>山岳許願清單</h2>
-            <button id="clearWishes" class="ghost-button" type="button">清空</button>
+            <button id="clearWishes" class="ghost-button admin-only hidden" type="button">清空</button>
           </div>
           <div id="wishList" class="entry-list empty"></div>
         </div>
@@ -194,7 +208,7 @@
         <div class="list-panel">
           <div class="panel-heading compact">
             <h2>報名清單</h2>
-            <button id="clearSignups" class="ghost-button" type="button">清空</button>
+            <button id="clearSignups" class="ghost-button admin-only hidden" type="button">清空</button>
           </div>
           <div id="signupList" class="entry-list empty"></div>
         </div>
@@ -202,7 +216,7 @@
         <div class="list-panel wide-panel">
           <div class="panel-heading compact">
             <h2>自助團繳費名冊</h2>
-            <button id="clearPayments" class="ghost-button" type="button">清空</button>
+            <button id="clearPayments" class="ghost-button admin-only hidden" type="button">清空</button>
           </div>
           <div id="paymentList" class="entry-list empty"></div>
         </div>
@@ -210,7 +224,7 @@
         <div class="list-panel subsidy-history-panel">
           <div class="panel-heading compact">
             <h2>活動補助款更新紀錄</h2>
-            <button id="clearSubsidyHistory" class="ghost-button" type="button">清空</button>
+            <button id="clearSubsidyHistory" class="ghost-button admin-only hidden" type="button">清空</button>
           </div>
           <div id="subsidyHistoryList" class="entry-list empty"></div>
         </div>
@@ -218,7 +232,7 @@
         <div class="list-panel subsidy-history-panel">
           <div class="panel-heading compact">
             <h2>設備補助款更新紀錄</h2>
-            <button id="clearEquipmentSubsidyHistory" class="ghost-button" type="button">清空</button>
+            <button id="clearEquipmentSubsidyHistory" class="ghost-button admin-only hidden" type="button">清空</button>
           </div>
           <div id="equipmentSubsidyHistoryList" class="entry-list empty"></div>
         </div>

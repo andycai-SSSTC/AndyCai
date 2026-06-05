@@ -7,8 +7,14 @@ import {
   remove,
   set
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
-const ADMIN_PASSWORD = "2738";
+const ADMIN_EMAILS = ["andy.cai@ssstc.com"];
 
 const firebaseConfig = {
   apiKey: "AIzaSyDH_z8Ir5tOtZtday2EYCfI8Ag4Er71DvY",
@@ -23,6 +29,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const auth = getAuth(app);
 
 const dbRefs = {
   wishes: ref(db, "wishes"),
@@ -43,7 +50,9 @@ const state = {
   subsidy: { ...emptySubsidy },
   subsidyHistory: [],
   equipmentSubsidy: { ...emptySubsidy },
-  equipmentSubsidyHistory: []
+  equipmentSubsidyHistory: [],
+  currentUser: null,
+  isAdmin: false
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -96,23 +105,45 @@ function setFormMessage(selector, text, isSuccess = false) {
   message.classList.toggle("success", isSuccess);
 }
 
-function requireAdminPassword(actionText) {
-  const password = prompt(`${actionText}\n請輸入管理密碼：`);
-  if (password === null) return false;
-  if (password !== ADMIN_PASSWORD) {
-    alert("密碼錯誤，無法執行此操作。");
-    return false;
-  }
-  return true;
+function emailIsAdmin(email) {
+  return ADMIN_EMAILS.includes(String(email || "").toLowerCase());
+}
+
+function requireAdmin(actionText) {
+  if (state.isAdmin) return true;
+  alert(`${actionText}\n請先用管理者帳號登入。`);
+  return false;
 }
 
 async function runFirebaseAction(action, successText) {
   try {
     await action();
     if (successText) setStatus(successText, "success");
+    return true;
   } catch (error) {
     console.error(error);
-    setStatus("Firebase 寫入失敗，請確認資料庫規則或網路狀態。", "error");
+    setStatus("Firebase 寫入失敗，請確認登入權限、資料庫規則或網路狀態。", "error");
+    return false;
+  }
+}
+
+function updateAdminUi() {
+  document.querySelectorAll(".admin-only").forEach((element) => {
+    element.classList.toggle("hidden", !state.isAdmin);
+  });
+
+  $("#adminLoginForm").classList.toggle("hidden", state.isAdmin);
+  $("#adminLogout").classList.toggle("hidden", !state.currentUser);
+
+  if (state.isAdmin) {
+    $("#adminStateText").textContent = `已登入管理者：${state.currentUser.email}`;
+    setFormMessage("#loginMessage", "管理者已登入。", true);
+  } else if (state.currentUser) {
+    $("#adminStateText").textContent = `已登入：${state.currentUser.email}，但此帳號不是管理者。`;
+    setFormMessage("#loginMessage", "此帳號沒有管理權限。", false);
+  } else {
+    $("#adminStateText").textContent = "尚未登入。登入後才能更新補助款與清空資料。";
+    setFormMessage("#loginMessage", "", false);
   }
 }
 
@@ -127,6 +158,7 @@ function render() {
   renderPayments();
   renderSubsidyHistory("#subsidyHistoryList", state.subsidyHistory);
   renderSubsidyHistory("#equipmentSubsidyHistoryList", state.equipmentSubsidyHistory);
+  updateAdminUi();
 }
 
 function renderSubsidySummary(totalSelector, updatedAtSelector, item) {
@@ -218,6 +250,12 @@ function renderSubsidyHistory(selector, records) {
     .join("");
 }
 
+onAuthStateChanged(auth, (user) => {
+  state.currentUser = user;
+  state.isAdmin = emailIsAdmin(user?.email);
+  updateAdminUi();
+});
+
 onValue(dbRefs.wishes, (snapshot) => {
   state.wishes = listFromSnapshot(snapshot);
   setStatus("已連線 Firebase，資料會即時同步。", "success");
@@ -257,6 +295,31 @@ onValue(dbRefs.equipmentSubsidyHistory, (snapshot) => {
   render();
 });
 
+$("#adminLoginForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const email = $("#adminEmail").value.trim().toLowerCase();
+  const password = $("#adminLoginPassword").value;
+
+  if (!emailIsAdmin(email)) {
+    setFormMessage("#loginMessage", "此 Email 不在管理者名單內。");
+    return;
+  }
+
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    $("#adminLoginPassword").value = "";
+    setFormMessage("#loginMessage", "登入成功。", true);
+  } catch (error) {
+    console.error(error);
+    setFormMessage("#loginMessage", "登入失敗，請確認 Firebase Auth 帳號與密碼。");
+  }
+});
+
+$("#adminLogout").addEventListener("click", async () => {
+  await signOut(auth);
+  setFormMessage("#loginMessage", "已登出。", true);
+});
+
 $("#wishForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const createdAt = nowInfo();
@@ -267,8 +330,9 @@ $("#wishForm").addEventListener("submit", async (event) => {
     createdAt: createdAt.text,
     createdAtMs: createdAt.ms
   };
-  await runFirebaseAction(() => push(dbRefs.wishes, payload), "許願已送出。");
-  event.currentTarget.reset();
+  if (await runFirebaseAction(() => push(dbRefs.wishes, payload), "許願已送出。")) {
+    event.currentTarget.reset();
+  }
 });
 
 $("#signupForm").addEventListener("submit", async (event) => {
@@ -282,8 +346,9 @@ $("#signupForm").addEventListener("submit", async (event) => {
     createdAt: createdAt.text,
     createdAtMs: createdAt.ms
   };
-  await runFirebaseAction(() => push(dbRefs.signups, payload), "報名已送出。");
-  event.currentTarget.reset();
+  if (await runFirebaseAction(() => push(dbRefs.signups, payload), "報名已送出。")) {
+    event.currentTarget.reset();
+  }
 });
 
 $("#paymentForm").addEventListener("submit", async (event) => {
@@ -299,17 +364,14 @@ $("#paymentForm").addEventListener("submit", async (event) => {
     createdAt: createdAt.text,
     createdAtMs: createdAt.ms
   };
-  await runFirebaseAction(() => push(dbRefs.payments, payload), "繳費紀錄已送出。");
-  event.currentTarget.reset();
+  if (await runFirebaseAction(() => push(dbRefs.payments, payload), "繳費紀錄已送出。")) {
+    event.currentTarget.reset();
+  }
 });
 
 $("#subsidyForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-
-  if ($("#adminPassword").value !== ADMIN_PASSWORD) {
-    setFormMessage("#adminMessage", "密碼錯誤，無法更新活動補助款。");
-    return;
-  }
+  if (!requireAdmin("更新活動補助款")) return;
 
   const updatedAt = nowInfo();
   const update = {
@@ -319,24 +381,19 @@ $("#subsidyForm").addEventListener("submit", async (event) => {
     updatedAtMs: updatedAt.ms
   };
 
-  await runFirebaseAction(async () => {
+  if (await runFirebaseAction(async () => {
     await set(dbRefs.subsidy, update);
     await push(dbRefs.subsidyHistory, update);
-  }, "活動補助款已同步更新。");
-
-  setFormMessage("#adminMessage", update.memo ? `已更新：${update.memo}` : "活動補助款已更新。", true);
-  $("#adminPassword").value = "";
-  $("#subsidyAmount").value = "";
-  $("#subsidyMemo").value = "";
+  }, "活動補助款已同步更新。")) {
+    setFormMessage("#adminMessage", update.memo ? `已更新：${update.memo}` : "活動補助款已更新。", true);
+    $("#subsidyAmount").value = "";
+    $("#subsidyMemo").value = "";
+  }
 });
 
 $("#equipmentSubsidyForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-
-  if ($("#equipmentAdminPassword").value !== ADMIN_PASSWORD) {
-    setFormMessage("#equipmentAdminMessage", "密碼錯誤，無法更新設備補助款。");
-    return;
-  }
+  if (!requireAdmin("更新設備補助款")) return;
 
   const updatedAt = nowInfo();
   const update = {
@@ -346,45 +403,50 @@ $("#equipmentSubsidyForm").addEventListener("submit", async (event) => {
     updatedAtMs: updatedAt.ms
   };
 
-  await runFirebaseAction(async () => {
+  if (await runFirebaseAction(async () => {
     await set(dbRefs.equipmentSubsidy, update);
     await push(dbRefs.equipmentSubsidyHistory, update);
-  }, "設備補助款已同步更新。");
-
-  setFormMessage("#equipmentAdminMessage", update.memo ? `已更新：${update.memo}` : "設備補助款已更新。", true);
-  $("#equipmentAdminPassword").value = "";
-  $("#equipmentSubsidyAmount").value = "";
-  $("#equipmentSubsidyMemo").value = "";
+  }, "設備補助款已同步更新。")) {
+    setFormMessage("#equipmentAdminMessage", update.memo ? `已更新：${update.memo}` : "設備補助款已更新。", true);
+    $("#equipmentSubsidyAmount").value = "";
+    $("#equipmentSubsidyMemo").value = "";
+  }
 });
 
 $("#clearWishes").addEventListener("click", async () => {
   if (!state.wishes.length) return;
-  if (!requireAdminPassword("確定清空所有許願資料？")) return;
+  if (!requireAdmin("清空所有許願資料")) return;
+  if (!confirm("確定清空所有許願資料？")) return;
   await runFirebaseAction(() => remove(dbRefs.wishes), "許願資料已清空。");
 });
 
 $("#clearSignups").addEventListener("click", async () => {
   if (!state.signups.length) return;
-  if (!requireAdminPassword("確定清空所有報名資料？")) return;
+  if (!requireAdmin("清空所有報名資料")) return;
+  if (!confirm("確定清空所有報名資料？")) return;
   await runFirebaseAction(() => remove(dbRefs.signups), "報名資料已清空。");
 });
 
 $("#clearPayments").addEventListener("click", async () => {
   if (!state.payments.length) return;
-  if (!requireAdminPassword("確定清空所有自助團繳費名冊？")) return;
+  if (!requireAdmin("清空所有自助團繳費名冊")) return;
+  if (!confirm("確定清空所有自助團繳費名冊？")) return;
   await runFirebaseAction(() => remove(dbRefs.payments), "自助團繳費名冊已清空。");
 });
 
 $("#clearSubsidyHistory").addEventListener("click", async () => {
   if (!state.subsidyHistory.length) return;
-  if (!requireAdminPassword("確定清空所有活動補助款更新紀錄？")) return;
+  if (!requireAdmin("清空所有活動補助款更新紀錄")) return;
+  if (!confirm("確定清空所有活動補助款更新紀錄？")) return;
   await runFirebaseAction(() => remove(dbRefs.subsidyHistory), "活動補助款更新紀錄已清空。");
 });
 
 $("#clearEquipmentSubsidyHistory").addEventListener("click", async () => {
   if (!state.equipmentSubsidyHistory.length) return;
-  if (!requireAdminPassword("確定清空所有設備補助款更新紀錄？")) return;
+  if (!requireAdmin("清空所有設備補助款更新紀錄")) return;
+  if (!confirm("確定清空所有設備補助款更新紀錄？")) return;
   await runFirebaseAction(() => remove(dbRefs.equipmentSubsidyHistory), "設備補助款更新紀錄已清空。");
 });
 
 render();
+

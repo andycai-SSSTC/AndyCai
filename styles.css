@@ -403,3 +403,26 @@ button:hover {
     flex-direction: column;
   }
 }
+
+.hidden {
+  display: none !important;
+}
+
+.admin-login-panel {
+  margin-bottom: 18px;
+}
+
+.admin-login-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+}
+
+.admin-login-form .form-message {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 700px) {
+  .admin-login-form {
+    grid-template-columns: 1fr;
+  }
+}
