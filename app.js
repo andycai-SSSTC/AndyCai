@@ -14,7 +14,7 @@ import {
   signOut
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
-const ADMIN_EMAILS = ["andy.cai@ssstc.com"];
+const ADMIN_EMAILS = ["b26270727@gmail.com"];
 
 const firebaseConfig = {
   apiKey: "AIzaSyDH_z8Ir5tOtZtday2EYCfI8Ag4Er71DvY",
@@ -449,4 +449,5 @@ $("#clearEquipmentSubsidyHistory").addEventListener("click", async () => {
 });
 
 render();
+
 

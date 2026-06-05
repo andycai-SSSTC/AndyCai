@@ -18,7 +18,7 @@
 目前前端管理者 email allowlist 在 `app.js`：
 
 ```js
-const ADMIN_EMAILS = ["andy.cai@ssstc.com"];
+const ADMIN_EMAILS = ["b26270727@gmail.com"];
 ```
 
 請在 Firebase Console 啟用 Authentication 的 Email/Password，並建立這個 email 的使用者帳號。
@@ -32,37 +32,37 @@ const ADMIN_EMAILS = ["andy.cai@ssstc.com"];
   "rules": {
     ".read": true,
     "wishes": {
-      ".write": "auth != null && auth.token.email == 'andy.cai@ssstc.com'",
+      ".write": "auth != null && auth.token.email == 'b26270727@gmail.com'",
       "$id": {
-        ".write": "(!data.exists() && newData.exists()) || (auth != null && auth.token.email == 'andy.cai@ssstc.com')",
+        ".write": "(!data.exists() && newData.exists()) || (auth != null && auth.token.email == 'b26270727@gmail.com')",
         ".validate": "!newData.exists() || newData.hasChildren(['name','mountain','createdAt','createdAtMs'])"
       }
     },
     "signups": {
-      ".write": "auth != null && auth.token.email == 'andy.cai@ssstc.com'",
+      ".write": "auth != null && auth.token.email == 'b26270727@gmail.com'",
       "$id": {
-        ".write": "(!data.exists() && newData.exists()) || (auth != null && auth.token.email == 'andy.cai@ssstc.com')",
+        ".write": "(!data.exists() && newData.exists()) || (auth != null && auth.token.email == 'b26270727@gmail.com')",
         ".validate": "!newData.exists() || newData.hasChildren(['name','date','createdAt','createdAtMs'])"
       }
     },
     "payments": {
-      ".write": "auth != null && auth.token.email == 'andy.cai@ssstc.com'",
+      ".write": "auth != null && auth.token.email == 'b26270727@gmail.com'",
       "$id": {
-        ".write": "(!data.exists() && newData.exists()) || (auth != null && auth.token.email == 'andy.cai@ssstc.com')",
+        ".write": "(!data.exists() && newData.exists()) || (auth != null && auth.token.email == 'b26270727@gmail.com')",
         ".validate": "!newData.exists() || newData.hasChildren(['name','trip','amount','status','createdAt','createdAtMs'])"
       }
     },
     "subsidy": {
-      ".write": "auth != null && auth.token.email == 'andy.cai@ssstc.com'"
+      ".write": "auth != null && auth.token.email == 'b26270727@gmail.com'"
     },
     "subsidyHistory": {
-      ".write": "auth != null && auth.token.email == 'andy.cai@ssstc.com'"
+      ".write": "auth != null && auth.token.email == 'b26270727@gmail.com'"
     },
     "equipmentSubsidy": {
-      ".write": "auth != null && auth.token.email == 'andy.cai@ssstc.com'"
+      ".write": "auth != null && auth.token.email == 'b26270727@gmail.com'"
     },
     "equipmentSubsidyHistory": {
-      ".write": "auth != null && auth.token.email == 'andy.cai@ssstc.com'"
+      ".write": "auth != null && auth.token.email == 'b26270727@gmail.com'"
     }
   }
 }
@@ -82,5 +82,6 @@ Commit message 可以填：
 `Require Firebase Auth for admin actions`
 
 GitHub Pages 通常會在 1 到 3 分鐘後更新。若瀏覽器還看到舊畫面，請按 `Ctrl + F5` 強制重新整理。
+
 
 
