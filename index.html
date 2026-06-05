@@ -68,6 +68,18 @@
           <button type="submit">登入管理</button>
           <p id="loginMessage" class="form-message" role="status"></p>
         </form>
+        <form id="adminPasswordForm" class="form-grid admin-login-form admin-only hidden">
+          <label>
+            新管理者密碼
+            <input id="newAdminPassword" type="password" minlength="8" autocomplete="new-password" required />
+          </label>
+          <label>
+            再輸入一次
+            <input id="confirmAdminPassword" type="password" minlength="8" autocomplete="new-password" required />
+          </label>
+          <button type="submit">修改密碼</button>
+          <p id="passwordMessage" class="form-message" role="status"></p>
+        </form>
       </section>
 
       <section class="workspace">

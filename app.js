@@ -11,7 +11,8 @@ import {
   getAuth,
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  signOut
+  signOut,
+  updatePassword
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
 const ADMIN_EMAILS = ["b26270727@gmail.com"];
@@ -133,6 +134,7 @@ function updateAdminUi() {
   });
 
   $("#adminLoginForm").classList.toggle("hidden", state.isAdmin);
+  $("#adminPasswordForm").classList.toggle("hidden", !state.isAdmin);
   $("#adminLogout").classList.toggle("hidden", !state.currentUser);
 
   if (state.isAdmin) {
@@ -318,6 +320,33 @@ $("#adminLoginForm").addEventListener("submit", async (event) => {
 $("#adminLogout").addEventListener("click", async () => {
   await signOut(auth);
   setFormMessage("#loginMessage", "已登出。", true);
+});
+
+$("#adminPasswordForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!requireAdmin("修改管理者密碼")) return;
+
+  const newPassword = $("#newAdminPassword").value;
+  const confirmPassword = $("#confirmAdminPassword").value;
+
+  if (newPassword.length < 8) {
+    setFormMessage("#passwordMessage", "新密碼至少需要 8 個字元。");
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    setFormMessage("#passwordMessage", "兩次輸入的新密碼不一致。");
+    return;
+  }
+
+  try {
+    await updatePassword(auth.currentUser, newPassword);
+    event.currentTarget.reset();
+    setFormMessage("#passwordMessage", "管理者密碼已更新。", true);
+  } catch (error) {
+    console.error(error);
+    setFormMessage("#passwordMessage", "密碼更新失敗，請先登出後重新登入，再立刻修改密碼。");
+  }
 });
 
 $("#wishForm").addEventListener("submit", async (event) => {
