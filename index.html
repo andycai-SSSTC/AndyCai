@@ -56,14 +56,14 @@
           </div>
           <button id="adminLogout" class="ghost-button hidden" type="button">登出</button>
         </div>
-        <form id="adminLoginForm" class="form-grid admin-login-form">
+        <form id="adminLoginForm" class="form-grid admin-login-form" autocomplete="off">
           <label>
             管理者 Email
-            <input id="adminEmail" type="email" placeholder="b26270727@gmail.com" required />
+            <input id="adminEmail" type="email" autocomplete="off" required />
           </label>
           <label>
             密碼
-            <input id="adminLoginPassword" type="password" placeholder="Firebase Auth 密碼" required />
+            <input id="adminLoginPassword" type="password" autocomplete="new-password" required />
           </label>
           <button type="submit">登入管理</button>
           <p id="loginMessage" class="form-message" role="status"></p>
