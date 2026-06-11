@@ -138,7 +138,7 @@ function updateAdminUi() {
   $("#adminLogout").classList.toggle("hidden", !state.currentUser);
 
   if (state.isAdmin) {
-    $("#adminStateText").textContent = `已登入管理者：${state.currentUser.email}`;
+    $("#adminStateText").textContent = "已登入管理者。";
     setFormMessage("#loginMessage", "管理者已登入。", true);
   } else if (state.currentUser) {
     $("#adminStateText").textContent = `已登入：${state.currentUser.email}，但此帳號不是管理者。`;
