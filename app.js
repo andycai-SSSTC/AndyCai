@@ -6,7 +6,8 @@ import {
   ref,
   remove,
   runTransaction,
-  set
+  set,
+  update
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
 import {
   getAuth,
@@ -38,6 +39,7 @@ const dbRefs = {
   signups: ref(db, "signups"),
   signupContacts: ref(db, "signupContacts"),
   payments: ref(db, "payments"),
+  paymentNotes: ref(db, "paymentNotes"),
   subsidy: ref(db, "subsidy"),
   subsidyHistory: ref(db, "subsidyHistory"),
   equipmentSubsidy: ref(db, "equipmentSubsidy"),
@@ -54,6 +56,7 @@ const state = {
   signups: [],
   signupContacts: {},
   payments: [],
+  paymentNotes: {},
   subsidy: { ...emptySubsidy },
   subsidyHistory: [],
   equipmentSubsidy: { ...emptySubsidy },
@@ -71,6 +74,7 @@ const formatter = new Intl.NumberFormat("zh-TW", {
   maximumFractionDigits: 0
 });
 let unsubscribeSignupContacts = null;
+let unsubscribePaymentNotes = null;
 
 function setStatus(text, type = "") {
   const bar = $("#statusBar");
@@ -274,7 +278,10 @@ function renderPayments() {
   list.innerHTML = state.payments
     .map((item) => {
       const date = item.paymentDate ? `<span>繳費日期：${escapeHtml(item.paymentDate)}</span>` : "";
-      const note = item.note ? `<p>${escapeHtml(item.note)}</p>` : "";
+      const privateNote = state.paymentNotes[item.id]?.note || item.note || "";
+      const note = state.isAdmin && privateNote
+        ? `<p class="private-contact">備註：${escapeHtml(privateNote)}</p>`
+        : "";
       return `
         <article class="entry payment-entry">
           <h3>${escapeHtml(item.name)} - ${escapeHtml(item.trip)}</h3>
@@ -442,6 +449,7 @@ onAuthStateChanged(auth, (user) => {
   state.currentUser = user;
   state.isAdmin = emailIsAdmin(user?.email);
   watchSignupContacts();
+  watchPaymentNotes();
   updateAdminUi();
 });
 
@@ -468,6 +476,29 @@ function watchSignupContacts() {
   });
 }
 
+function watchPaymentNotes() {
+  if (unsubscribePaymentNotes) {
+    unsubscribePaymentNotes();
+    unsubscribePaymentNotes = null;
+  }
+
+  state.paymentNotes = {};
+  if (!state.isAdmin) {
+    render();
+    return;
+  }
+
+  unsubscribePaymentNotes = onValue(dbRefs.paymentNotes, (snapshot) => {
+    state.paymentNotes = snapshot.val() || {};
+    render();
+    migrateLegacyPaymentNotes();
+  }, (error) => {
+    console.error(error);
+    state.paymentNotes = {};
+    render();
+  });
+}
+
 onValue(dbRefs.wishes, (snapshot) => {
   state.wishes = listFromSnapshot(snapshot);
   setStatus("已連線，資料會即時同步。", "success");
@@ -486,6 +517,7 @@ onValue(dbRefs.signups, (snapshot) => {
 onValue(dbRefs.payments, (snapshot) => {
   state.payments = listFromSnapshot(snapshot);
   render();
+  migrateLegacyPaymentNotes();
 });
 
 onValue(dbRefs.subsidy, (snapshot) => {
@@ -650,20 +682,54 @@ async function migrateLegacySignupNotes() {
 $("#paymentForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const createdAt = nowInfo();
+  const paymentId = push(dbRefs.payments).key;
+  const notePayload = {
+    note: $("#paymentNote").value.trim(),
+    createdAt: createdAt.text,
+    createdAtMs: createdAt.ms
+  };
   const payload = {
     name: $("#paymentName").value.trim(),
     trip: $("#paymentTrip").value.trim(),
     amount: Number($("#paymentAmount").value),
     paymentDate: $("#paymentDate").value,
     status: $("#paymentStatus").value,
-    note: $("#paymentNote").value.trim(),
     createdAt: createdAt.text,
     createdAtMs: createdAt.ms
   };
-  if (await runDataAction(() => push(dbRefs.payments, payload), "繳費紀錄已送出。")) {
+  if (await runDataAction(async () => {
+    const updates = {
+      [`payments/${paymentId}`]: payload
+    };
+    if (notePayload.note) {
+      updates[`paymentNotes/${paymentId}`] = notePayload;
+    }
+    await update(ref(db), updates);
+  }, "繳費紀錄已送出。")) {
     event.currentTarget.reset();
   }
 });
+
+async function migrateLegacyPaymentNotes() {
+  if (!state.isAdmin) return;
+
+  const legacyItems = state.payments.filter((item) => item.note && !state.paymentNotes[item.id]?.note);
+  if (!legacyItems.length) return;
+
+  await runDataAction(async () => {
+    const updates = {};
+    for (const item of legacyItems) {
+      const { note, ...publicPayment } = item;
+      updates[`paymentNotes/${item.id}`] = {
+        note,
+        createdAt: item.createdAt || "",
+        createdAtMs: item.createdAtMs || Date.now()
+      };
+      updates[`payments/${item.id}`] = publicPayment;
+    }
+    await update(ref(db), updates);
+  }, "已將舊繳費備註移到管理者私密區。");
+}
 
 $("#pollSettingsForm").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -872,7 +938,10 @@ $("#clearPayments").addEventListener("click", async () => {
   if (!state.payments.length) return;
   if (!requireAdmin("清空所有自助團繳費名冊")) return;
   if (!confirm("確定清空所有自助團繳費名冊？")) return;
-  await runDataAction(() => remove(dbRefs.payments), "自助團繳費名冊已清空。");
+  await runDataAction(() => update(ref(db), {
+    payments: null,
+    paymentNotes: null
+  }), "自助團繳費名冊已清空。");
 });
 
 $("#clearSubsidyHistory").addEventListener("click", async () => {
