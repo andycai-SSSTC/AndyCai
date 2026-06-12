@@ -36,6 +36,7 @@ const auth = getAuth(app);
 const dbRefs = {
   wishes: ref(db, "wishes"),
   signups: ref(db, "signups"),
+  signupContacts: ref(db, "signupContacts"),
   payments: ref(db, "payments"),
   subsidy: ref(db, "subsidy"),
   subsidyHistory: ref(db, "subsidyHistory"),
@@ -51,6 +52,7 @@ const emptyPollSettings = { startDate: "", endDate: "", availableDates: [] };
 const state = {
   wishes: [],
   signups: [],
+  signupContacts: {},
   payments: [],
   subsidy: { ...emptySubsidy },
   subsidyHistory: [],
@@ -68,6 +70,7 @@ const formatter = new Intl.NumberFormat("zh-TW", {
   currency: "TWD",
   maximumFractionDigits: 0
 });
+let unsubscribeSignupContacts = null;
 
 function setStatus(text, type = "") {
   const bar = $("#statusBar");
@@ -246,7 +249,10 @@ function renderSignups() {
   list.innerHTML = state.signups
     .map((item) => {
       const mountain = item.mountain ? `<p>偏好山岳：${escapeHtml(item.mountain)}</p>` : "";
-      const note = item.note ? `<p>${escapeHtml(item.note)}</p>` : "";
+      const privateContact = state.signupContacts[item.id]?.note || item.note || "";
+      const note = state.isAdmin && privateContact
+        ? `<p class="private-contact">聯絡方式或備註：${escapeHtml(privateContact)}</p>`
+        : "";
       return `
         <article class="entry">
           <h3>${escapeHtml(item.name)}</h3>
@@ -435,8 +441,32 @@ function renderVoteAnalysis() {
 onAuthStateChanged(auth, (user) => {
   state.currentUser = user;
   state.isAdmin = emailIsAdmin(user?.email);
+  watchSignupContacts();
   updateAdminUi();
 });
+
+function watchSignupContacts() {
+  if (unsubscribeSignupContacts) {
+    unsubscribeSignupContacts();
+    unsubscribeSignupContacts = null;
+  }
+
+  state.signupContacts = {};
+  if (!state.isAdmin) {
+    render();
+    return;
+  }
+
+  unsubscribeSignupContacts = onValue(dbRefs.signupContacts, (snapshot) => {
+    state.signupContacts = snapshot.val() || {};
+    render();
+    migrateLegacySignupNotes();
+  }, (error) => {
+    console.error(error);
+    state.signupContacts = {};
+    render();
+  });
+}
 
 onValue(dbRefs.wishes, (snapshot) => {
   state.wishes = listFromSnapshot(snapshot);
@@ -450,6 +480,7 @@ onValue(dbRefs.wishes, (snapshot) => {
 onValue(dbRefs.signups, (snapshot) => {
   state.signups = listFromSnapshot(snapshot);
   render();
+  migrateLegacySignupNotes();
 });
 
 onValue(dbRefs.payments, (snapshot) => {
@@ -576,18 +607,45 @@ $("#wishForm").addEventListener("submit", async (event) => {
 $("#signupForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const createdAt = nowInfo();
+  const signupId = push(dbRefs.signups).key;
   const payload = {
     name: $("#signupName").value.trim(),
     date: $("#signupDate").value,
     mountain: $("#signupMountain").value.trim(),
+    createdAt: createdAt.text,
+    createdAtMs: createdAt.ms
+  };
+  const contactPayload = {
     note: $("#signupNote").value.trim(),
     createdAt: createdAt.text,
     createdAtMs: createdAt.ms
   };
-  if (await runFirebaseAction(() => push(dbRefs.signups, payload), "報名已送出。")) {
+  if (await runFirebaseAction(async () => {
+    await set(ref(db, `signups/${signupId}`), payload);
+    await set(ref(db, `signupContacts/${signupId}`), contactPayload);
+  }, "報名已送出。")) {
     event.currentTarget.reset();
   }
 });
+
+async function migrateLegacySignupNotes() {
+  if (!state.isAdmin) return;
+
+  const legacyItems = state.signups.filter((item) => item.note && !state.signupContacts[item.id]?.note);
+  if (!legacyItems.length) return;
+
+  await runFirebaseAction(async () => {
+    for (const item of legacyItems) {
+      const { note, ...publicSignup } = item;
+      await set(ref(db, `signupContacts/${item.id}`), {
+        note,
+        createdAt: item.createdAt || "",
+        createdAtMs: item.createdAtMs || Date.now()
+      });
+      await set(ref(db, `signups/${item.id}`), publicSignup);
+    }
+  }, "已將舊報名聯絡資訊移到管理者私密區。");
+}
 
 $("#paymentForm").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -804,7 +862,10 @@ $("#clearSignups").addEventListener("click", async () => {
   if (!state.signups.length) return;
   if (!requireAdmin("清空所有報名資料")) return;
   if (!confirm("確定清空所有報名資料？")) return;
-  await runFirebaseAction(() => remove(dbRefs.signups), "報名資料已清空。");
+  await runFirebaseAction(async () => {
+    await remove(dbRefs.signups);
+    await remove(dbRefs.signupContacts);
+  }, "報名資料已清空。");
 });
 
 $("#clearPayments").addEventListener("click", async () => {

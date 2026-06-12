@@ -501,6 +501,15 @@ button:active {
   line-height: 1.58;
 }
 
+.private-contact {
+  border: 1px solid rgba(168, 95, 69, 0.26);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: #7b482f !important;
+  background: #fff5ef;
+  font-weight: 800;
+}
+
 .entry-meta {
   display: flex;
   flex-wrap: wrap;
