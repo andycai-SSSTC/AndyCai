@@ -5,6 +5,7 @@ import {
   push,
   ref,
   remove,
+  runTransaction,
   set
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
 import {
@@ -239,11 +240,16 @@ function renderSubsidyHistory(selector, records) {
   list.innerHTML = records
     .map((item) => {
       const memo = item.memo ? `<p>${escapeHtml(item.memo)}</p>` : "<p>無更新說明</p>";
+      const change = Number(item.change || 0);
+      const changeText = change
+        ? `<span class="${change < 0 ? "expense-change" : "income-change"}">${change < 0 ? "扣款" : "增加"}：${formatter.format(change)}</span>`
+        : "";
       return `
-        <article class="entry subsidy-entry">
+        <article class="entry subsidy-entry ${change < 0 ? "expense-entry" : ""}">
           <h3>${formatter.format(item.amount || 0)}</h3>
           ${memo}
           <div class="entry-meta">
+            ${changeText}
             <span>${escapeHtml(item.updatedAt)}</span>
           </div>
         </article>
@@ -439,6 +445,65 @@ $("#equipmentSubsidyForm").addEventListener("submit", async (event) => {
     setFormMessage("#equipmentAdminMessage", update.memo ? `已更新：${update.memo}` : "設備補助款已更新。", true);
     $("#equipmentSubsidyAmount").value = "";
     $("#equipmentSubsidyMemo").value = "";
+  }
+});
+
+$("#equipmentPurchaseForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!requireAdmin("扣除設備採購費用")) return;
+
+  const deduction = Number($("#equipmentPurchaseAmount").value);
+  const itemName = $("#equipmentPurchaseName").value.trim();
+  const memoInput = $("#equipmentPurchaseMemo").value.trim();
+  const currentAmount = Number(state.equipmentSubsidy.amount || 0);
+
+  if (!deduction || deduction <= 0) {
+    setFormMessage("#equipmentPurchaseMessage", "請輸入大於 0 的採購扣款金額。");
+    return;
+  }
+
+  if (deduction > currentAmount) {
+    setFormMessage("#equipmentPurchaseMessage", `扣款金額不可大於目前設備補助款 ${formatter.format(currentAmount)}。`);
+    return;
+  }
+
+  const updatedAt = nowInfo();
+  const nextAmount = currentAmount - deduction;
+  const memo = [itemName ? `採購裝備：${itemName}` : "設備採購扣款", memoInput].filter(Boolean).join("；");
+  const update = {
+    amount: nextAmount,
+    memo,
+    type: "expense",
+    change: -deduction,
+    updatedAt: updatedAt.text,
+    updatedAtMs: updatedAt.ms
+  };
+
+  if (await runFirebaseAction(async () => {
+    const result = await runTransaction(dbRefs.equipmentSubsidy, (current) => {
+      const amount = Number(current?.amount || 0);
+      if (deduction > amount) return;
+      return {
+        ...(current || {}),
+        amount: amount - deduction,
+        memo,
+        updatedAt: updatedAt.text,
+        updatedAtMs: updatedAt.ms
+      };
+    });
+
+    if (!result.committed) {
+      throw new Error("Equipment subsidy deduction was not committed.");
+    }
+
+    const committedAmount = Number(result.snapshot.val()?.amount || nextAmount);
+    await push(dbRefs.equipmentSubsidyHistory, {
+      ...update,
+      amount: committedAmount
+    });
+  }, "設備採購費用已自動扣除。")) {
+    setFormMessage("#equipmentPurchaseMessage", `${formatter.format(deduction)} 已扣除，設備補助款剩餘 ${formatter.format(nextAmount)}。`, true);
+    event.currentTarget.reset();
   }
 });
 

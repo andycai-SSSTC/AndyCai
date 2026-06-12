@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>登山社團報名系統</title>
-    <link rel="stylesheet" href="styles.css?v=visual-refresh-20260611" />
+    <link rel="stylesheet" href="styles.css?v=equipment-deduction-20260612" />
   </head>
   <body>
     <header class="site-header">
@@ -205,6 +205,22 @@
             <button type="submit">更新設備補助款</button>
             <p id="equipmentAdminMessage" class="form-message" role="status"></p>
           </form>
+          <form id="equipmentPurchaseForm" class="form-grid purchase-form">
+            <label>
+              採購裝備
+              <input id="equipmentPurchaseName" type="text" placeholder="例如：登山杖、頭燈、爐具" required />
+            </label>
+            <label>
+              採購扣款金額
+              <input id="equipmentPurchaseAmount" type="number" min="1" step="1" placeholder="例如：2000" required />
+            </label>
+            <label class="full">
+              備註
+              <input id="equipmentPurchaseMemo" type="text" placeholder="例如：社團共用裝備採購" />
+            </label>
+            <button type="submit">自動扣除設備補助款</button>
+            <p id="equipmentPurchaseMessage" class="form-message" role="status"></p>
+          </form>
         </div>
       </section>
 
@@ -251,7 +267,7 @@
       </section>
     </main>
 
-    <script type="module" src="app.js?v=f0de1dc"></script>
+    <script type="module" src="app.js?v=equipment-deduction-20260612"></script>
   </body>
 </html>
 

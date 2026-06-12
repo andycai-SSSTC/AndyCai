@@ -305,6 +305,12 @@ h1 {
   gap: 14px;
 }
 
+.purchase-form {
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+
 label {
   display: grid;
   gap: 7px;
@@ -462,6 +468,20 @@ button:active {
 
 .subsidy-entry {
   border-left-color: var(--clay);
+}
+
+.expense-entry {
+  border-left-color: #9d3f2f;
+}
+
+.expense-change {
+  color: #9d3f2f;
+  background: #fff0eb !important;
+}
+
+.income-change {
+  color: var(--forest);
+  background: #edf7ee !important;
 }
 
 .hidden {
