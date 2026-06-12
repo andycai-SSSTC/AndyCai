@@ -565,6 +565,16 @@ button:active {
   background: #fff5ef;
 }
 
+.generated-dates {
+  border: 1px dashed rgba(47, 111, 143, 0.35);
+  border-radius: 8px;
+  padding: 12px 13px;
+  color: var(--lake);
+  background: #f1f8fb;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
 .vote-analysis.empty::before {
   display: block;
   border: 1px dashed #cbd8d0;

@@ -327,7 +327,7 @@
           <div class="panel admin-panel admin-only hidden">
             <div class="panel-heading">
               <h2>投票設定</h2>
-              <p>管理者設定投票期間與可票選日期，供社員投票使用。</p>
+              <p>管理者設定投票期間；系統會自動列出期間內每個星期六供社員投票。</p>
             </div>
             <form id="pollSettingsForm" class="form-grid">
               <label>
@@ -338,10 +338,7 @@
                 投票結束日
                 <input id="pollEndDate" type="date" required />
               </label>
-              <label class="full">
-                可票選日期
-                <textarea id="pollAvailableDates" rows="4" placeholder="每行一個日期，例如：&#10;2026-07-06&#10;2026-07-13" required></textarea>
-              </label>
+              <div id="generatedSaturdayList" class="generated-dates">請先設定開始日與結束日。</div>
               <button type="submit">儲存投票設定</button>
               <p id="pollSettingsMessage" class="form-message" role="status"></p>
             </form>
@@ -370,7 +367,7 @@
       </section>
     </main>
 
-    <script type="module" src="app.js?v=route-voting-20260612"></script>
+    <script type="module" src="app.js?v=saturday-vote-dates-20260612"></script>
   </body>
 </html>
 

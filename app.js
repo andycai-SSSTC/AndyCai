@@ -103,12 +103,41 @@ function todayValue() {
   return date.toISOString().slice(0, 10);
 }
 
-function parseDateLines(value) {
-  return [...new Set(String(value || "")
-    .split(/[\n,，、;；\s]+/)
-    .map((item) => item.trim())
-    .filter(Boolean))]
-    .sort();
+function dateFromValue(value) {
+  if (!value) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+}
+
+function dateToValue(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatVoteDate(value) {
+  const date = dateFromValue(value);
+  if (!date) return value;
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function generateSaturdayDates(startDate, endDate) {
+  const start = dateFromValue(startDate);
+  const end = dateFromValue(endDate);
+  if (!start || !end || start > end) return [];
+
+  const current = new Date(start);
+  const daysUntilSaturday = (6 - current.getDay() + 7) % 7;
+  current.setDate(current.getDate() + daysUntilSaturday);
+
+  const dates = [];
+  while (current <= end) {
+    dates.push(dateToValue(current));
+    current.setDate(current.getDate() + 7);
+  }
+  return dates;
 }
 
 function escapeHtml(value) {
@@ -288,7 +317,7 @@ function pollIsOpen() {
 
 function renderPollUi() {
   const settings = state.pollSettings;
-  const availableDates = Array.isArray(settings.availableDates) ? settings.availableDates : [];
+  const availableDates = generateSaturdayDates(settings.startDate, settings.endDate);
   const routeSelect = $("#voteRoute");
   const dateSelect = $("#voteAvailableDate");
   const selectedRoute = routeSelect.value;
@@ -302,20 +331,22 @@ function renderPollUi() {
 
   dateSelect.innerHTML = [
     '<option value="">請先選擇日期</option>',
-    ...availableDates.map((date) => `<option value="${escapeHtml(date)}">${escapeHtml(date)}</option>`)
+    ...availableDates.map((date) => `<option value="${escapeHtml(date)}">${escapeHtml(formatVoteDate(date))}</option>`)
   ].join("");
   dateSelect.value = availableDates.includes(selectedDate) ? selectedDate : "";
 
   $("#pollStartDate").value = settings.startDate || "";
   $("#pollEndDate").value = settings.endDate || "";
-  $("#pollAvailableDates").value = availableDates.join("\n");
+  $("#generatedSaturdayList").textContent = availableDates.length
+    ? `系統將開放這些星期六：${availableDates.map(formatVoteDate).join("、")}`
+    : "此期間內沒有星期六，請調整開始日或結束日。";
 
   const statusCard = $("#pollStatusCard");
   if (!settings.startDate || !settings.endDate) {
     statusCard.textContent = "投票期間尚未設定。";
     statusCard.className = "poll-status-card";
   } else if (pollIsOpen()) {
-    statusCard.textContent = `投票開放中：${settings.startDate} 至 ${settings.endDate}，可選日期 ${availableDates.length} 天。`;
+    statusCard.textContent = `投票開放中：${settings.startDate} 至 ${settings.endDate}，可選星期六 ${availableDates.length} 天。`;
     statusCard.className = "poll-status-card open";
   } else {
     statusCard.textContent = `投票未開放：${settings.startDate} 至 ${settings.endDate}。`;
@@ -582,7 +613,7 @@ $("#pollSettingsForm").addEventListener("submit", async (event) => {
 
   const startDate = $("#pollStartDate").value;
   const endDate = $("#pollEndDate").value;
-  const availableDates = parseDateLines($("#pollAvailableDates").value);
+  const availableDates = generateSaturdayDates(startDate, endDate);
   const updatedAt = nowInfo();
 
   if (startDate > endDate) {
@@ -591,7 +622,7 @@ $("#pollSettingsForm").addEventListener("submit", async (event) => {
   }
 
   if (!availableDates.length) {
-    setFormMessage("#pollSettingsMessage", "請至少填寫一個可票選日期。");
+    setFormMessage("#pollSettingsMessage", "投票期間內沒有星期六，請調整開始日或結束日。");
     return;
   }
 
@@ -628,7 +659,7 @@ $("#routeVoteForm").addEventListener("submit", async (event) => {
   }
 
   if (!availableDates.includes(availableDate)) {
-    setFormMessage("#voteMessage", "請先選擇管理者設定的可票選日期。");
+    setFormMessage("#voteMessage", "請先選擇系統產生的星期六日期。");
     return;
   }
 
