@@ -299,6 +299,25 @@ h1 {
   line-height: 1.65;
 }
 
+.purchase-note {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(217, 163, 61, 0.35);
+  border-left: 4px solid var(--amber);
+  border-radius: 8px;
+  padding: 12px 13px;
+  color: #4f6258;
+  background: #fffaf0;
+}
+
+.purchase-note p {
+  margin: 0;
+}
+
+.purchase-note strong {
+  color: #7b482f;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: 1fr;
