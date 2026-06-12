@@ -168,14 +168,14 @@ function requireAdmin(actionText) {
   return false;
 }
 
-async function runFirebaseAction(action, successText) {
+async function runDataAction(action, successText) {
   try {
     await action();
     if (successText) setStatus(successText, "success");
     return true;
   } catch (error) {
     console.error(error);
-    setStatus("Firebase 寫入失敗，請確認登入權限、資料庫規則或網路狀態。", "error");
+    setStatus("寫入失敗，請確認登入權限、資料庫規則或網路狀態。", "error");
     return false;
   }
 }
@@ -470,11 +470,11 @@ function watchSignupContacts() {
 
 onValue(dbRefs.wishes, (snapshot) => {
   state.wishes = listFromSnapshot(snapshot);
-  setStatus("已連線 Firebase，資料會即時同步。", "success");
+  setStatus("已連線，資料會即時同步。", "success");
   render();
 }, (error) => {
   console.error(error);
-  setStatus("Firebase 讀取失敗，請檢查 Realtime Database 規則。", "error");
+  setStatus("讀取失敗，請檢查資料庫規則。", "error");
 });
 
 onValue(dbRefs.signups, (snapshot) => {
@@ -553,7 +553,7 @@ $("#adminLoginForm").addEventListener("submit", async (event) => {
     setFormMessage("#loginMessage", "登入成功。", true);
   } catch (error) {
     console.error(error);
-    setFormMessage("#loginMessage", "登入失敗，請確認 Firebase Auth 帳號與密碼。");
+    setFormMessage("#loginMessage", "登入失敗，請確認管理者帳號與密碼。");
   }
 });
 
@@ -599,7 +599,7 @@ $("#wishForm").addEventListener("submit", async (event) => {
     createdAt: createdAt.text,
     createdAtMs: createdAt.ms
   };
-  if (await runFirebaseAction(() => push(dbRefs.wishes, payload), "許願已送出。")) {
+  if (await runDataAction(() => push(dbRefs.wishes, payload), "許願已送出。")) {
     event.currentTarget.reset();
   }
 });
@@ -620,7 +620,7 @@ $("#signupForm").addEventListener("submit", async (event) => {
     createdAt: createdAt.text,
     createdAtMs: createdAt.ms
   };
-  if (await runFirebaseAction(async () => {
+  if (await runDataAction(async () => {
     await set(ref(db, `signups/${signupId}`), payload);
     await set(ref(db, `signupContacts/${signupId}`), contactPayload);
   }, "報名已送出。")) {
@@ -634,7 +634,7 @@ async function migrateLegacySignupNotes() {
   const legacyItems = state.signups.filter((item) => item.note && !state.signupContacts[item.id]?.note);
   if (!legacyItems.length) return;
 
-  await runFirebaseAction(async () => {
+  await runDataAction(async () => {
     for (const item of legacyItems) {
       const { note, ...publicSignup } = item;
       await set(ref(db, `signupContacts/${item.id}`), {
@@ -660,7 +660,7 @@ $("#paymentForm").addEventListener("submit", async (event) => {
     createdAt: createdAt.text,
     createdAtMs: createdAt.ms
   };
-  if (await runFirebaseAction(() => push(dbRefs.payments, payload), "繳費紀錄已送出。")) {
+  if (await runDataAction(() => push(dbRefs.payments, payload), "繳費紀錄已送出。")) {
     event.currentTarget.reset();
   }
 });
@@ -692,7 +692,7 @@ $("#pollSettingsForm").addEventListener("submit", async (event) => {
     updatedAtMs: updatedAt.ms
   };
 
-  if (await runFirebaseAction(() => set(dbRefs.pollSettings, payload), "投票設定已更新。")) {
+  if (await runDataAction(() => set(dbRefs.pollSettings, payload), "投票設定已更新。")) {
     setFormMessage("#pollSettingsMessage", "投票設定已儲存。", true);
   }
 });
@@ -731,7 +731,7 @@ $("#routeVoteForm").addEventListener("submit", async (event) => {
     createdAtMs: createdAt.ms
   };
 
-  if (await runFirebaseAction(() => push(dbRefs.routeVotes, payload), "投票已送出。")) {
+  if (await runDataAction(() => push(dbRefs.routeVotes, payload), "投票已送出。")) {
     setFormMessage("#voteMessage", "投票已送出。", true);
     event.currentTarget.reset();
   }
@@ -749,7 +749,7 @@ $("#subsidyForm").addEventListener("submit", async (event) => {
     updatedAtMs: updatedAt.ms
   };
 
-  if (await runFirebaseAction(async () => {
+  if (await runDataAction(async () => {
     await set(dbRefs.subsidy, update);
     await push(dbRefs.subsidyHistory, update);
   }, "活動補助款已同步更新。")) {
@@ -771,7 +771,7 @@ $("#equipmentSubsidyForm").addEventListener("submit", async (event) => {
     updatedAtMs: updatedAt.ms
   };
 
-  if (await runFirebaseAction(async () => {
+  if (await runDataAction(async () => {
     await set(dbRefs.equipmentSubsidy, update);
     await push(dbRefs.equipmentSubsidyHistory, update);
   }, "設備補助款已同步更新。")) {
@@ -819,7 +819,7 @@ $("#equipmentPurchaseForm").addEventListener("submit", async (event) => {
     updatedAtMs: updatedAt.ms
   };
 
-  if (await runFirebaseAction(async () => {
+  if (await runDataAction(async () => {
     const result = await runTransaction(dbRefs.equipmentSubsidy, (current) => {
       const amount = Number(current?.amount || 0);
       if (deduction > amount) return;
@@ -855,14 +855,14 @@ $("#clearWishes").addEventListener("click", async () => {
   if (!state.wishes.length) return;
   if (!requireAdmin("清空所有許願資料")) return;
   if (!confirm("確定清空所有許願資料？")) return;
-  await runFirebaseAction(() => remove(dbRefs.wishes), "許願資料已清空。");
+  await runDataAction(() => remove(dbRefs.wishes), "許願資料已清空。");
 });
 
 $("#clearSignups").addEventListener("click", async () => {
   if (!state.signups.length) return;
   if (!requireAdmin("清空所有報名資料")) return;
   if (!confirm("確定清空所有報名資料？")) return;
-  await runFirebaseAction(async () => {
+  await runDataAction(async () => {
     await remove(dbRefs.signups);
     await remove(dbRefs.signupContacts);
   }, "報名資料已清空。");
@@ -872,28 +872,28 @@ $("#clearPayments").addEventListener("click", async () => {
   if (!state.payments.length) return;
   if (!requireAdmin("清空所有自助團繳費名冊")) return;
   if (!confirm("確定清空所有自助團繳費名冊？")) return;
-  await runFirebaseAction(() => remove(dbRefs.payments), "自助團繳費名冊已清空。");
+  await runDataAction(() => remove(dbRefs.payments), "自助團繳費名冊已清空。");
 });
 
 $("#clearSubsidyHistory").addEventListener("click", async () => {
   if (!state.subsidyHistory.length) return;
   if (!requireAdmin("清空所有活動補助款更新紀錄")) return;
   if (!confirm("確定清空所有活動補助款更新紀錄？")) return;
-  await runFirebaseAction(() => remove(dbRefs.subsidyHistory), "活動補助款更新紀錄已清空。");
+  await runDataAction(() => remove(dbRefs.subsidyHistory), "活動補助款更新紀錄已清空。");
 });
 
 $("#clearEquipmentSubsidyHistory").addEventListener("click", async () => {
   if (!state.equipmentSubsidyHistory.length) return;
   if (!requireAdmin("清空所有設備補助款更新紀錄")) return;
   if (!confirm("確定清空所有設備補助款更新紀錄？")) return;
-  await runFirebaseAction(() => remove(dbRefs.equipmentSubsidyHistory), "設備補助款更新紀錄已清空。");
+  await runDataAction(() => remove(dbRefs.equipmentSubsidyHistory), "設備補助款更新紀錄已清空。");
 });
 
 $("#clearRouteVotes").addEventListener("click", async () => {
   if (!state.routeVotes.length) return;
   if (!requireAdmin("清空所有路線投票")) return;
   if (!confirm("確定清空所有路線投票？")) return;
-  await runFirebaseAction(() => remove(dbRefs.routeVotes), "路線投票已清空。");
+  await runDataAction(() => remove(dbRefs.routeVotes), "路線投票已清空。");
 });
 
 render();
