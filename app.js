@@ -450,12 +450,17 @@ $("#equipmentSubsidyForm").addEventListener("submit", async (event) => {
 
 $("#equipmentPurchaseForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!requireAdmin("扣除設備採購費用")) return;
 
   const deduction = Number($("#equipmentPurchaseAmount").value);
+  const purchaser = $("#equipmentPurchaserName").value.trim();
   const itemName = $("#equipmentPurchaseName").value.trim();
   const memoInput = $("#equipmentPurchaseMemo").value.trim();
   const currentAmount = Number(state.equipmentSubsidy.amount || 0);
+
+  if (!purchaser) {
+    setFormMessage("#equipmentPurchaseMessage", "請填寫採購人姓名。");
+    return;
+  }
 
   if (!deduction || deduction <= 0) {
     setFormMessage("#equipmentPurchaseMessage", "請輸入大於 0 的採購扣款金額。");
@@ -469,12 +474,14 @@ $("#equipmentPurchaseForm").addEventListener("submit", async (event) => {
 
   const updatedAt = nowInfo();
   const nextAmount = currentAmount - deduction;
-  const memo = [itemName ? `採購裝備：${itemName}` : "設備採購扣款", memoInput].filter(Boolean).join("；");
+  const memo = [`採購人：${purchaser}`, itemName ? `採購裝備：${itemName}` : "設備採購扣款", memoInput].filter(Boolean).join("；");
   const update = {
     amount: nextAmount,
     memo,
     type: "expense",
     change: -deduction,
+    purchaser,
+    itemName,
     updatedAt: updatedAt.text,
     updatedAtMs: updatedAt.ms
   };
@@ -487,6 +494,10 @@ $("#equipmentPurchaseForm").addEventListener("submit", async (event) => {
         ...(current || {}),
         amount: amount - deduction,
         memo,
+        type: "expense",
+        change: -deduction,
+        purchaser,
+        itemName,
         updatedAt: updatedAt.text,
         updatedAtMs: updatedAt.ms
       };
