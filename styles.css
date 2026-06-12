@@ -252,11 +252,49 @@ h1 {
   background: #fff5f1;
 }
 
+.tab-nav {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab-button {
+  flex: 1;
+  min-height: 42px;
+  color: var(--forest);
+  background: transparent;
+  box-shadow: none;
+}
+
+.tab-button:hover,
+.tab-button.active {
+  color: #fff;
+  background: linear-gradient(180deg, #286348, var(--forest));
+  box-shadow: 0 7px 16px rgba(32, 81, 62, 0.16);
+}
+
+.tab-page {
+  display: none;
+}
+
+.tab-page.active {
+  display: block;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   align-items: start;
+}
+
+.vote-workspace {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
 .panel,
@@ -439,6 +477,10 @@ button:active {
   content: "目前尚無資料";
 }
 
+.entry-list.empty::before {
+  content: "目前尚無資料";
+}
+
 .entry {
   border: 1px solid #e2e9e3;
   border-left: 4px solid var(--fern);
@@ -483,6 +525,10 @@ button:active {
   border-left-color: var(--clay);
 }
 
+.vote-entry {
+  border-left-color: var(--lake);
+}
+
 .expense-entry {
   border-left-color: #9d3f2f;
 }
@@ -495,6 +541,99 @@ button:active {
 .income-change {
   color: var(--forest);
   background: #edf7ee !important;
+}
+
+.poll-status-card {
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 13px;
+  color: var(--muted);
+  background: #f8faf7;
+  font-weight: 800;
+}
+
+.poll-status-card.open {
+  border-color: rgba(110, 148, 111, 0.35);
+  color: var(--forest);
+  background: #f1f8f0;
+}
+
+.poll-status-card.closed {
+  border-color: rgba(168, 95, 69, 0.3);
+  color: #8a4934;
+  background: #fff5ef;
+}
+
+.vote-analysis.empty::before {
+  display: block;
+  border: 1px dashed #cbd8d0;
+  border-radius: 8px;
+  padding: 18px;
+  color: var(--muted);
+  background: #fbfcfa;
+  text-align: center;
+  content: "目前尚無投票資料";
+}
+
+.analysis-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.analysis-summary article {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 13px;
+  background: #fbfcfa;
+}
+
+.analysis-summary span,
+.analysis-row span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.analysis-summary strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--forest);
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+
+.analysis-list {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.analysis-row {
+  display: grid;
+  gap: 8px;
+}
+
+.analysis-row strong {
+  display: block;
+  margin-bottom: 3px;
+}
+
+.bar {
+  overflow: hidden;
+  height: 9px;
+  border-radius: 999px;
+  background: #e7efe8;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--forest), var(--amber));
 }
 
 .hidden {
@@ -546,8 +685,14 @@ button:active {
   .summary-grid,
   .workspace,
   .lists,
-  .admin-login-form {
+  .admin-login-form,
+  .vote-workspace,
+  .analysis-summary {
     grid-template-columns: 1fr;
+  }
+
+  .tab-nav {
+    flex-direction: column;
   }
 
   .wide-panel,

@@ -40,10 +40,13 @@ const dbRefs = {
   subsidy: ref(db, "subsidy"),
   subsidyHistory: ref(db, "subsidyHistory"),
   equipmentSubsidy: ref(db, "equipmentSubsidy"),
-  equipmentSubsidyHistory: ref(db, "equipmentSubsidyHistory")
+  equipmentSubsidyHistory: ref(db, "equipmentSubsidyHistory"),
+  pollSettings: ref(db, "pollSettings"),
+  routeVotes: ref(db, "routeVotes")
 };
 
 const emptySubsidy = { amount: 0, memo: "", updatedAt: "" };
+const emptyPollSettings = { startDate: "", endDate: "", availableDates: [] };
 
 const state = {
   wishes: [],
@@ -53,6 +56,8 @@ const state = {
   subsidyHistory: [],
   equipmentSubsidy: { ...emptySubsidy },
   equipmentSubsidyHistory: [],
+  pollSettings: { ...emptyPollSettings },
+  routeVotes: [],
   currentUser: null,
   isAdmin: false
 };
@@ -90,6 +95,20 @@ function nowInfo() {
     }).format(date),
     ms: date.getTime()
   };
+}
+
+function todayValue() {
+  const date = new Date();
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 10);
+}
+
+function parseDateLines(value) {
+  return [...new Set(String(value || "")
+    .split(/[\n,，、;；\s]+/)
+    .map((item) => item.trim())
+    .filter(Boolean))]
+    .sort();
 }
 
 function escapeHtml(value) {
@@ -156,11 +175,14 @@ function render() {
   $("#paymentCount").textContent = state.payments.length;
   renderSubsidySummary("#subsidyTotal", "#subsidyUpdatedAt", state.subsidy);
   renderSubsidySummary("#equipmentSubsidyTotal", "#equipmentSubsidyUpdatedAt", state.equipmentSubsidy);
+  renderPollUi();
   renderWishes();
   renderSignups();
   renderPayments();
   renderSubsidyHistory("#subsidyHistoryList", state.subsidyHistory);
   renderSubsidyHistory("#equipmentSubsidyHistoryList", state.equipmentSubsidyHistory);
+  renderRouteVotes();
+  renderVoteAnalysis();
   updateAdminUi();
 }
 
@@ -258,6 +280,127 @@ function renderSubsidyHistory(selector, records) {
     .join("");
 }
 
+function pollIsOpen() {
+  const { startDate, endDate } = state.pollSettings;
+  const today = todayValue();
+  return Boolean(startDate && endDate && today >= startDate && today <= endDate);
+}
+
+function renderPollUi() {
+  const settings = state.pollSettings;
+  const availableDates = Array.isArray(settings.availableDates) ? settings.availableDates : [];
+  const routeSelect = $("#voteRoute");
+  const dateSelect = $("#voteAvailableDate");
+  const selectedRoute = routeSelect.value;
+  const selectedDate = dateSelect.value;
+
+  routeSelect.innerHTML = [
+    '<option value="">請先選擇路線</option>',
+    ...state.wishes.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.mountain)} - ${escapeHtml(item.name || "未填發想人")}</option>`)
+  ].join("");
+  routeSelect.value = state.wishes.some((item) => item.id === selectedRoute) ? selectedRoute : "";
+
+  dateSelect.innerHTML = [
+    '<option value="">請先選擇日期</option>',
+    ...availableDates.map((date) => `<option value="${escapeHtml(date)}">${escapeHtml(date)}</option>`)
+  ].join("");
+  dateSelect.value = availableDates.includes(selectedDate) ? selectedDate : "";
+
+  $("#pollStartDate").value = settings.startDate || "";
+  $("#pollEndDate").value = settings.endDate || "";
+  $("#pollAvailableDates").value = availableDates.join("\n");
+
+  const statusCard = $("#pollStatusCard");
+  if (!settings.startDate || !settings.endDate) {
+    statusCard.textContent = "投票期間尚未設定。";
+    statusCard.className = "poll-status-card";
+  } else if (pollIsOpen()) {
+    statusCard.textContent = `投票開放中：${settings.startDate} 至 ${settings.endDate}，可選日期 ${availableDates.length} 天。`;
+    statusCard.className = "poll-status-card open";
+  } else {
+    statusCard.textContent = `投票未開放：${settings.startDate} 至 ${settings.endDate}。`;
+    statusCard.className = "poll-status-card closed";
+  }
+}
+
+function renderRouteVotes() {
+  const list = $("#routeVoteList");
+  list.classList.toggle("empty", state.routeVotes.length === 0);
+  list.innerHTML = state.routeVotes
+    .map((item) => {
+      const note = item.note ? `<p>${escapeHtml(item.note)}</p>` : "";
+      return `
+        <article class="entry vote-entry">
+          <h3>${escapeHtml(item.routeName)}</h3>
+          ${note}
+          <div class="entry-meta">
+            <span>投票人：${escapeHtml(item.voterName)}</span>
+            <span>有空日期：${escapeHtml(item.availableDate)}</span>
+            <span>${escapeHtml(item.createdAt)}</span>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function countBy(items, key) {
+  return items.reduce((acc, item) => {
+    const value = item[key] || "未填";
+    acc[value] = (acc[value] || 0) + 1;
+    return acc;
+  }, {});
+}
+
+function renderRanking(title, counts, total) {
+  const rows = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  if (!rows.length) return `<section><h3>${title}</h3><p>目前尚無資料</p></section>`;
+  return `
+    <section>
+      <h3>${title}</h3>
+      <div class="analysis-list">
+        ${rows.map(([name, count]) => {
+          const percent = total ? Math.round((count / total) * 100) : 0;
+          return `
+            <div class="analysis-row">
+              <div>
+                <strong>${escapeHtml(name)}</strong>
+                <span>${count} 票，${percent}%</span>
+              </div>
+              <div class="bar"><i style="width: ${percent}%"></i></div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderVoteAnalysis() {
+  const target = $("#voteAnalysis");
+  const total = state.routeVotes.length;
+  target.classList.toggle("empty", total === 0);
+  if (!total) {
+    target.innerHTML = "";
+    return;
+  }
+
+  const routeCounts = countBy(state.routeVotes, "routeName");
+  const dateCounts = countBy(state.routeVotes, "availableDate");
+  const topRoute = Object.entries(routeCounts).sort((a, b) => b[1] - a[1])[0];
+  const topDate = Object.entries(dateCounts).sort((a, b) => b[1] - a[1])[0];
+
+  target.innerHTML = `
+    <div class="analysis-summary">
+      <article><span>總票數</span><strong>${total}</strong></article>
+      <article><span>熱門路線</span><strong>${escapeHtml(topRoute?.[0] || "-")}</strong></article>
+      <article><span>最多人有空</span><strong>${escapeHtml(topDate?.[0] || "-")}</strong></article>
+    </div>
+    ${renderRanking("路線排名", routeCounts, total)}
+    ${renderRanking("日期可行性", dateCounts, total)}
+  `;
+}
+
 onAuthStateChanged(auth, (user) => {
   state.currentUser = user;
   state.isAdmin = emailIsAdmin(user?.email);
@@ -301,6 +444,35 @@ onValue(dbRefs.equipmentSubsidy, (snapshot) => {
 onValue(dbRefs.equipmentSubsidyHistory, (snapshot) => {
   state.equipmentSubsidyHistory = listFromSnapshot(snapshot);
   render();
+});
+
+onValue(dbRefs.pollSettings, (snapshot) => {
+  const value = snapshot.val() || {};
+  state.pollSettings = {
+    ...emptyPollSettings,
+    ...value,
+    availableDates: Array.isArray(value.availableDates) ? value.availableDates : []
+  };
+  render();
+});
+
+onValue(dbRefs.routeVotes, (snapshot) => {
+  state.routeVotes = listFromSnapshot(snapshot);
+  render();
+});
+
+document.querySelectorAll(".tab-button").forEach((button) => {
+  button.addEventListener("click", () => {
+    const targetId = button.dataset.tabTarget;
+    document.querySelectorAll(".tab-button").forEach((item) => {
+      const active = item === button;
+      item.classList.toggle("active", active);
+      item.setAttribute("aria-selected", String(active));
+    });
+    document.querySelectorAll(".tab-page").forEach((page) => {
+      page.classList.toggle("active", page.id === targetId);
+    });
+  });
 });
 
 $("#adminLoginForm").addEventListener("submit", async (event) => {
@@ -400,6 +572,78 @@ $("#paymentForm").addEventListener("submit", async (event) => {
     createdAtMs: createdAt.ms
   };
   if (await runFirebaseAction(() => push(dbRefs.payments, payload), "繳費紀錄已送出。")) {
+    event.currentTarget.reset();
+  }
+});
+
+$("#pollSettingsForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!requireAdmin("設定路線投票")) return;
+
+  const startDate = $("#pollStartDate").value;
+  const endDate = $("#pollEndDate").value;
+  const availableDates = parseDateLines($("#pollAvailableDates").value);
+  const updatedAt = nowInfo();
+
+  if (startDate > endDate) {
+    setFormMessage("#pollSettingsMessage", "投票開始日不可晚於結束日。");
+    return;
+  }
+
+  if (!availableDates.length) {
+    setFormMessage("#pollSettingsMessage", "請至少填寫一個可票選日期。");
+    return;
+  }
+
+  const payload = {
+    startDate,
+    endDate,
+    availableDates,
+    updatedAt: updatedAt.text,
+    updatedAtMs: updatedAt.ms
+  };
+
+  if (await runFirebaseAction(() => set(dbRefs.pollSettings, payload), "投票設定已更新。")) {
+    setFormMessage("#pollSettingsMessage", "投票設定已儲存。", true);
+  }
+});
+
+$("#routeVoteForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  if (!pollIsOpen()) {
+    setFormMessage("#voteMessage", "目前不在投票期間內，暫時不能送出投票。");
+    return;
+  }
+
+  const createdAt = nowInfo();
+  const routeId = $("#voteRoute").value;
+  const route = state.wishes.find((item) => item.id === routeId);
+  const availableDate = $("#voteAvailableDate").value;
+  const availableDates = Array.isArray(state.pollSettings.availableDates) ? state.pollSettings.availableDates : [];
+
+  if (!route) {
+    setFormMessage("#voteMessage", "請先選擇許願路線。");
+    return;
+  }
+
+  if (!availableDates.includes(availableDate)) {
+    setFormMessage("#voteMessage", "請先選擇管理者設定的可票選日期。");
+    return;
+  }
+
+  const payload = {
+    voterName: $("#voteName").value.trim(),
+    routeId,
+    routeName: route.mountain,
+    availableDate,
+    note: $("#voteNote").value.trim(),
+    createdAt: createdAt.text,
+    createdAtMs: createdAt.ms
+  };
+
+  if (await runFirebaseAction(() => push(dbRefs.routeVotes, payload), "投票已送出。")) {
+    setFormMessage("#voteMessage", "投票已送出。", true);
     event.currentTarget.reset();
   }
 });
@@ -551,6 +795,13 @@ $("#clearEquipmentSubsidyHistory").addEventListener("click", async () => {
   if (!requireAdmin("清空所有設備補助款更新紀錄")) return;
   if (!confirm("確定清空所有設備補助款更新紀錄？")) return;
   await runFirebaseAction(() => remove(dbRefs.equipmentSubsidyHistory), "設備補助款更新紀錄已清空。");
+});
+
+$("#clearRouteVotes").addEventListener("click", async () => {
+  if (!state.routeVotes.length) return;
+  if (!requireAdmin("清空所有路線投票")) return;
+  if (!confirm("確定清空所有路線投票？")) return;
+  await runFirebaseAction(() => remove(dbRefs.routeVotes), "路線投票已清空。");
 });
 
 render();

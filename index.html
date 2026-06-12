@@ -48,6 +48,12 @@
 
       <section id="statusBar" class="status-bar">正在連線 Firebase...</section>
 
+      <nav class="tab-nav" aria-label="網站分頁">
+        <button class="tab-button active" type="button" data-tab-target="mainTab" aria-selected="true">許願與報名</button>
+        <button class="tab-button" type="button" data-tab-target="voteTab" aria-selected="false">路線投票</button>
+      </nav>
+
+      <section id="mainTab" class="tab-page active">
       <section class="admin-login-panel panel">
         <div class="panel-heading compact">
           <div>
@@ -282,9 +288,89 @@
           <div id="equipmentSubsidyHistoryList" class="entry-list empty"></div>
         </div>
       </section>
+      </section>
+
+      <section id="voteTab" class="tab-page">
+        <section class="workspace vote-workspace">
+          <div class="panel">
+            <div class="panel-heading">
+              <h2>路線投票</h2>
+              <p>票選第一分頁許願清單中的路線，並選擇自己有空的日期。</p>
+            </div>
+            <div id="pollStatusCard" class="poll-status-card">投票期間尚未設定。</div>
+            <form id="routeVoteForm" class="form-grid">
+              <label>
+                投票人姓名
+                <input id="voteName" type="text" placeholder="例如：小美" required />
+              </label>
+              <label>
+                想投票的許願路線
+                <select id="voteRoute" required>
+                  <option value="">請先選擇路線</option>
+                </select>
+              </label>
+              <label>
+                有空日期
+                <select id="voteAvailableDate" required>
+                  <option value="">請先選擇日期</option>
+                </select>
+              </label>
+              <label class="full">
+                備註
+                <input id="voteNote" type="text" placeholder="例如：可開車、偏好週六、需共乘" />
+              </label>
+              <button type="submit">送出投票</button>
+              <p id="voteMessage" class="form-message" role="status"></p>
+            </form>
+          </div>
+
+          <div class="panel admin-panel admin-only hidden">
+            <div class="panel-heading">
+              <h2>投票設定</h2>
+              <p>管理者設定投票期間與可票選日期，供社員投票使用。</p>
+            </div>
+            <form id="pollSettingsForm" class="form-grid">
+              <label>
+                投票開始日
+                <input id="pollStartDate" type="date" required />
+              </label>
+              <label>
+                投票結束日
+                <input id="pollEndDate" type="date" required />
+              </label>
+              <label class="full">
+                可票選日期
+                <textarea id="pollAvailableDates" rows="4" placeholder="每行一個日期，例如：&#10;2026-07-06&#10;2026-07-13" required></textarea>
+              </label>
+              <button type="submit">儲存投票設定</button>
+              <p id="pollSettingsMessage" class="form-message" role="status"></p>
+            </form>
+          </div>
+
+          <div class="panel admin-panel admin-only hidden vote-analysis-panel">
+            <div class="panel-heading compact">
+              <div>
+                <h2>投票統計分析</h2>
+                <p>管理者可快速查看熱門路線、最多人有空日期與總票數。</p>
+              </div>
+              <button id="clearRouteVotes" class="ghost-button admin-only hidden" type="button">清空投票</button>
+            </div>
+            <div id="voteAnalysis" class="vote-analysis empty"></div>
+          </div>
+        </section>
+
+        <section class="lists">
+          <div class="list-panel wide-panel">
+            <div class="panel-heading compact">
+              <h2>目前投票紀錄</h2>
+            </div>
+            <div id="routeVoteList" class="entry-list empty"></div>
+          </div>
+        </section>
+      </section>
     </main>
 
-    <script type="module" src="app.js?v=purchase-note-20260612"></script>
+    <script type="module" src="app.js?v=route-voting-20260612"></script>
   </body>
 </html>
 
