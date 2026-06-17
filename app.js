@@ -18,6 +18,10 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
 const ADMIN_EMAILS = ["b26270727@gmail.com"];
+const ACCESS_SESSION_KEY = "mountainClubAccessGranted";
+const PIN_SLOT_IDS = ["pin1", "pin2", "pin3", "pin4", "pin5"];
+const PIN_MIN_LENGTH = 4;
+const PIN_MAX_LENGTH = 12;
 
 const firebaseConfig = {
   apiKey: "AIzaSyDH_z8Ir5tOtZtday2EYCfI8Ag4Er71DvY",
@@ -45,7 +49,8 @@ const dbRefs = {
   equipmentSubsidy: ref(db, "equipmentSubsidy"),
   equipmentSubsidyHistory: ref(db, "equipmentSubsidyHistory"),
   pollSettings: ref(db, "pollSettings"),
-  routeVotes: ref(db, "routeVotes")
+  routeVotes: ref(db, "routeVotes"),
+  accessPins: ref(db, "subsidy/accessPins")
 };
 
 const emptySubsidy = { amount: 0, memo: "", updatedAt: "" };
@@ -64,7 +69,10 @@ const state = {
   pollSettings: { ...emptyPollSettings },
   routeVotes: [],
   currentUser: null,
-  isAdmin: false
+  isAdmin: false,
+  accessPins: {},
+  accessPinsLoaded: false,
+  accessGranted: readAccessSession()
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -102,6 +110,100 @@ function nowInfo() {
     }).format(date),
     ms: date.getTime()
   };
+}
+
+function readAccessSession() {
+  try {
+    return sessionStorage.getItem(ACCESS_SESSION_KEY) === "1";
+  } catch (error) {
+    return false;
+  }
+}
+
+function writeAccessSession(granted) {
+  try {
+    if (granted) {
+      sessionStorage.setItem(ACCESS_SESSION_KEY, "1");
+    } else {
+      sessionStorage.removeItem(ACCESS_SESSION_KEY);
+    }
+  } catch (error) {
+    console.warn(error);
+  }
+}
+
+function bytesToHex(bytes) {
+  return Array.from(bytes)
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function generateSalt() {
+  if (!globalThis.crypto?.getRandomValues) {
+    throw new Error("此瀏覽器不支援安全亂數，請改用 HTTPS 網址開啟。");
+  }
+  const bytes = new Uint8Array(16);
+  globalThis.crypto.getRandomValues(bytes);
+  return bytesToHex(bytes);
+}
+
+async function sha256Hex(text) {
+  if (!globalThis.crypto?.subtle) {
+    throw new Error("此瀏覽器不支援安全雜湊，請改用 HTTPS 網址開啟。");
+  }
+  const data = new TextEncoder().encode(text);
+  const hash = await globalThis.crypto.subtle.digest("SHA-256", data);
+  return bytesToHex(new Uint8Array(hash));
+}
+
+async function hashPin(pin, salt) {
+  return sha256Hex(`${salt}:${pin}`);
+}
+
+function normalizePin(pin) {
+  return String(pin || "").trim();
+}
+
+function pinHasValidFormat(pin) {
+  return new RegExp(`^[0-9]{${PIN_MIN_LENGTH},${PIN_MAX_LENGTH}}$`).test(pin);
+}
+
+function accessPinEntries() {
+  return PIN_SLOT_IDS.map((id) => ({ id, ...(state.accessPins[id] || {}) }));
+}
+
+function configuredPinCount() {
+  return accessPinEntries().filter((item) => item.hash && item.salt).length;
+}
+
+function setAccessGranted(granted) {
+  state.accessGranted = granted;
+  writeAccessSession(granted);
+  renderAccessGate();
+}
+
+function renderAccessGate() {
+  const gate = $("#accessGate");
+  const site = $("#protectedSite");
+  if (!gate || !site) return;
+
+  const shouldShowSite = state.accessGranted || state.isAdmin;
+  gate.classList.toggle("hidden", shouldShowSite);
+  site.classList.toggle("hidden", !shouldShowSite);
+
+  const message = $("#pinAccessMessage");
+  if (!shouldShowSite && state.accessPinsLoaded && configuredPinCount() === 0 && !message.textContent) {
+    setFormMessage("#pinAccessMessage", "尚未設定通行 PIN，請管理者登入後設定。");
+  }
+}
+
+async function pinMatches(pin) {
+  for (const item of accessPinEntries()) {
+    if (!item.hash || !item.salt) continue;
+    const attemptedHash = await hashPin(pin, item.salt);
+    if (attemptedHash === item.hash) return true;
+  }
+  return false;
 }
 
 function todayValue() {
@@ -220,6 +322,18 @@ function render() {
   renderRouteVotes();
   renderVoteAnalysis();
   updateAdminUi();
+  renderAccessGate();
+  renderAccessPinAdmin();
+}
+
+function renderAccessPinAdmin() {
+  const summary = $("#pinSettingsSummary");
+  if (!summary) return;
+
+  const count = configuredPinCount();
+  summary.textContent = count === PIN_SLOT_IDS.length
+    ? "已設定 5 組通行 PIN。輸入新 PIN 可替換；留空會維持原 PIN。"
+    : `目前已設定 ${count}/5 組 PIN。請補齊 5 組後提供給報名者。`;
 }
 
 function renderSubsidySummary(totalSelector, updatedAtSelector, item) {
@@ -448,9 +562,13 @@ function renderVoteAnalysis() {
 onAuthStateChanged(auth, (user) => {
   state.currentUser = user;
   state.isAdmin = emailIsAdmin(user?.email);
+  if (state.isAdmin) {
+    setAccessGranted(true);
+  }
   watchSignupContacts();
   watchPaymentNotes();
   updateAdminUi();
+  renderAccessGate();
 });
 
 function watchSignupContacts() {
@@ -498,6 +616,19 @@ function watchPaymentNotes() {
     render();
   });
 }
+
+onValue(dbRefs.accessPins, (snapshot) => {
+  state.accessPins = snapshot.val() || {};
+  state.accessPinsLoaded = true;
+  renderAccessGate();
+  renderAccessPinAdmin();
+}, (error) => {
+  console.error(error);
+  state.accessPins = {};
+  state.accessPinsLoaded = true;
+  setFormMessage("#pinAccessMessage", "PIN 設定讀取失敗，請聯絡管理者。");
+  renderAccessGate();
+});
 
 onValue(dbRefs.wishes, (snapshot) => {
   state.wishes = listFromSnapshot(snapshot);
@@ -569,24 +700,71 @@ document.querySelectorAll(".tab-button").forEach((button) => {
   });
 });
 
-$("#adminLoginForm").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const email = $("#adminEmail").value.trim().toLowerCase();
-  const password = $("#adminLoginPassword").value;
-
+async function signInAdmin(email, password, messageSelector, passwordSelector) {
   if (!emailIsAdmin(email)) {
-    setFormMessage("#loginMessage", "此 Email 不在管理者名單內。");
+    setFormMessage(messageSelector, "此 Email 不在管理者名單內。");
     return;
   }
 
   try {
     await signInWithEmailAndPassword(auth, email, password);
-    $("#adminLoginPassword").value = "";
-    setFormMessage("#loginMessage", "登入成功。", true);
+    if (passwordSelector) $(passwordSelector).value = "";
+    setAccessGranted(true);
+    setFormMessage(messageSelector, "登入成功。", true);
   } catch (error) {
     console.error(error);
-    setFormMessage("#loginMessage", "登入失敗，請確認管理者帳號與密碼。");
+    setFormMessage(messageSelector, "登入失敗，請確認管理者帳號與密碼。");
   }
+}
+
+$("#pinAccessForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const pin = normalizePin($("#accessPin").value);
+
+  if (!state.accessPinsLoaded) {
+    setFormMessage("#pinAccessMessage", "PIN 設定讀取中，請稍候。");
+    return;
+  }
+
+  if (configuredPinCount() === 0) {
+    setFormMessage("#pinAccessMessage", "尚未設定通行 PIN，請管理者登入後設定。");
+    return;
+  }
+
+  if (!pinHasValidFormat(pin)) {
+    setFormMessage("#pinAccessMessage", `PIN 需為 ${PIN_MIN_LENGTH}-${PIN_MAX_LENGTH} 位數字。`);
+    return;
+  }
+
+  try {
+    if (await pinMatches(pin)) {
+      $("#accessPin").value = "";
+      setFormMessage("#pinAccessMessage", "PIN 正確，已進入網站。", true);
+      setAccessGranted(true);
+    } else {
+      setFormMessage("#pinAccessMessage", "PIN 不正確，請確認後再輸入。");
+    }
+  } catch (error) {
+    console.error(error);
+    setFormMessage("#pinAccessMessage", error.message || "PIN 驗證失敗，請改用 HTTPS 網址開啟。");
+  }
+});
+
+$("#gateAdminLoginForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await signInAdmin(
+    $("#gateAdminEmail").value.trim().toLowerCase(),
+    $("#gateAdminPassword").value,
+    "#gateAdminMessage",
+    "#gateAdminPassword"
+  );
+});
+
+$("#adminLoginForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const email = $("#adminEmail").value.trim().toLowerCase();
+  const password = $("#adminLoginPassword").value;
+  await signInAdmin(email, password, "#loginMessage", "#adminLoginPassword");
 });
 
 $("#adminLogout").addEventListener("click", async () => {
@@ -618,6 +796,51 @@ $("#adminPasswordForm").addEventListener("submit", async (event) => {
   } catch (error) {
     console.error(error);
     setFormMessage("#passwordMessage", "密碼更新失敗，請先登出後重新登入，再立刻修改密碼。");
+  }
+});
+
+$("#pinSettingsForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!requireAdmin("設定通行 PIN")) return;
+
+  const updatedAt = nowInfo();
+  const nextPins = { ...state.accessPins };
+
+  try {
+    for (const input of document.querySelectorAll(".pin-setting-input")) {
+      const pinId = input.dataset.pinId;
+      const pin = normalizePin(input.value);
+      if (!pin) continue;
+
+      if (!pinHasValidFormat(pin)) {
+        setFormMessage("#pinSettingsMessage", `${pinId.toUpperCase()} 需為 ${PIN_MIN_LENGTH}-${PIN_MAX_LENGTH} 位數字。`);
+        return;
+      }
+
+      const salt = generateSalt();
+      nextPins[pinId] = {
+        salt,
+        hash: await hashPin(pin, salt),
+        updatedAt: updatedAt.text,
+        updatedAtMs: updatedAt.ms
+      };
+    }
+
+    const configuredCount = PIN_SLOT_IDS.filter((id) => nextPins[id]?.hash && nextPins[id]?.salt).length;
+    if (configuredCount !== PIN_SLOT_IDS.length) {
+      setFormMessage("#pinSettingsMessage", "請設定完整 5 組 PIN。已設定的欄位可留空維持原 PIN。");
+      return;
+    }
+
+    if (await runDataAction(() => set(dbRefs.accessPins, nextPins), "通行 PIN 已更新。")) {
+      event.currentTarget.reset();
+      state.accessPins = nextPins;
+      renderAccessPinAdmin();
+      setFormMessage("#pinSettingsMessage", "5 組通行 PIN 已更新。", true);
+    }
+  } catch (error) {
+    console.error(error);
+    setFormMessage("#pinSettingsMessage", error.message || "PIN 更新失敗，請改用 HTTPS 網址開啟。");
   }
 });
 
@@ -816,7 +1039,7 @@ $("#subsidyForm").addEventListener("submit", async (event) => {
   };
 
   if (await runDataAction(async () => {
-    await set(dbRefs.subsidy, update);
+    await update(dbRefs.subsidy, update);
     await push(dbRefs.subsidyHistory, update);
   }, "活動補助款已同步更新。")) {
     setFormMessage("#adminMessage", update.memo ? `已更新：${update.memo}` : "活動補助款已更新。", true);

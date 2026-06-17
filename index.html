@@ -4,9 +4,43 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>登山社團報名系統</title>
-    <link rel="stylesheet" href="styles.css?v=equipment-deduction-20260612" />
+    <link rel="stylesheet" href="styles.css?v=pin-gate-20260617" />
   </head>
   <body>
+    <section id="accessGate" class="access-gate" aria-labelledby="accessGateTitle">
+      <div class="gate-card">
+        <p class="eyebrow">Mountain Club Access</p>
+        <h1 id="accessGateTitle">登山社團通行 PIN</h1>
+        <p>請輸入管理者提供的 PIN 碼後進入報名網站。</p>
+
+        <form id="pinAccessForm" class="gate-form" autocomplete="off">
+          <label>
+            通行 PIN
+            <input id="accessPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="12" autocomplete="one-time-code" required />
+          </label>
+          <button type="submit">進入網站</button>
+          <p id="pinAccessMessage" class="form-message" role="status"></p>
+        </form>
+
+        <details class="gate-admin">
+          <summary>管理者登入設定或更新 PIN</summary>
+          <form id="gateAdminLoginForm" class="gate-form" autocomplete="off">
+            <label>
+              管理者 Email
+              <input id="gateAdminEmail" type="email" autocomplete="off" required />
+            </label>
+            <label>
+              密碼
+              <input id="gateAdminPassword" type="password" autocomplete="new-password" required />
+            </label>
+            <button type="submit">管理者進入</button>
+            <p id="gateAdminMessage" class="form-message" role="status"></p>
+          </form>
+        </details>
+      </div>
+    </section>
+
+    <div id="protectedSite" class="protected-site hidden">
     <header class="site-header">
       <div class="header-art" aria-hidden="true">
         <div class="sun"></div>
@@ -210,6 +244,37 @@
 
         <div class="panel admin-panel admin-only hidden">
           <div class="panel-heading">
+            <h2>通行 PIN 管理</h2>
+            <p id="pinSettingsSummary">尚未讀取 PIN 設定。</p>
+          </div>
+          <form id="pinSettingsForm" class="form-grid pin-settings-form" autocomplete="off">
+            <label>
+              PIN 1
+              <input class="pin-setting-input" data-pin-id="pin1" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="12" placeholder="留空維持原 PIN" autocomplete="new-password" />
+            </label>
+            <label>
+              PIN 2
+              <input class="pin-setting-input" data-pin-id="pin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="12" placeholder="留空維持原 PIN" autocomplete="new-password" />
+            </label>
+            <label>
+              PIN 3
+              <input class="pin-setting-input" data-pin-id="pin3" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="12" placeholder="留空維持原 PIN" autocomplete="new-password" />
+            </label>
+            <label>
+              PIN 4
+              <input class="pin-setting-input" data-pin-id="pin4" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="12" placeholder="留空維持原 PIN" autocomplete="new-password" />
+            </label>
+            <label>
+              PIN 5
+              <input class="pin-setting-input" data-pin-id="pin5" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="12" placeholder="留空維持原 PIN" autocomplete="new-password" />
+            </label>
+            <button type="submit">更新 5 組 PIN</button>
+            <p id="pinSettingsMessage" class="form-message" role="status"></p>
+          </form>
+        </div>
+
+        <div class="panel admin-panel admin-only hidden">
+          <div class="panel-heading">
             <h2>活動補助款管理</h2>
             <p>管理者登入後才能更新活動剩餘補助款。</p>
           </div>
@@ -366,8 +431,9 @@
         </section>
       </section>
     </main>
+    </div>
 
-    <script type="module" src="app.js?v=private-payment-notes-20260612"></script>
+    <script type="module" src="app.js?v=pin-gate-20260617"></script>
   </body>
 </html>
 
