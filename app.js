@@ -7,7 +7,7 @@ import {
   remove,
   runTransaction,
   set,
-  update
+  update as updateData
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
 import {
   getAuth,
@@ -927,7 +927,7 @@ $("#paymentForm").addEventListener("submit", async (event) => {
     if (notePayload.note) {
       updates[`paymentNotes/${paymentId}`] = notePayload;
     }
-    await update(ref(db), updates);
+    await updateData(ref(db), updates);
   }, "繳費紀錄已送出。")) {
     event.currentTarget.reset();
   }
@@ -950,7 +950,7 @@ async function migrateLegacyPaymentNotes() {
       };
       updates[`payments/${item.id}`] = publicPayment;
     }
-    await update(ref(db), updates);
+    await updateData(ref(db), updates);
   }, "已將舊繳費備註移到管理者私密區。");
 }
 
@@ -1039,7 +1039,7 @@ $("#subsidyForm").addEventListener("submit", async (event) => {
   };
 
   if (await runDataAction(async () => {
-    await update(dbRefs.subsidy, update);
+    await updateData(dbRefs.subsidy, update);
     await push(dbRefs.subsidyHistory, update);
   }, "活動補助款已同步更新。")) {
     setFormMessage("#adminMessage", update.memo ? `已更新：${update.memo}` : "活動補助款已更新。", true);
@@ -1161,7 +1161,7 @@ $("#clearPayments").addEventListener("click", async () => {
   if (!state.payments.length) return;
   if (!requireAdmin("清空所有自助團繳費名冊")) return;
   if (!confirm("確定清空所有自助團繳費名冊？")) return;
-  await runDataAction(() => update(ref(db), {
+  await runDataAction(() => updateData(ref(db), {
     payments: null,
     paymentNotes: null
   }), "自助團繳費名冊已清空。");
