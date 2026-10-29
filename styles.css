@@ -355,6 +355,11 @@ h1 {
   box-shadow: 0 7px 16px rgba(32, 81, 62, 0.16);
 }
 
+.tab-button:focus-visible {
+  outline: 3px solid var(--lake);
+  outline-offset: 2px;
+}
+
 .tab-page {
   display: none;
 }
@@ -437,6 +442,12 @@ h1 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   align-items: start;
+}
+
+#mainTab > .workspace,
+.finance-workspace,
+.admin-workspace {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .vote-workspace {
@@ -848,7 +859,8 @@ button:active {
   }
 
   .summary-card strong {
-    font-size: 1.85rem;
+    font-size: 1.55rem;
+    overflow-wrap: anywhere;
   }
 
   .app-shell {
@@ -856,14 +868,29 @@ button:active {
     margin-top: -44px;
   }
 
-  .summary-grid,
   .workspace,
   .lists,
   .admin-login-form,
   .pin-settings-form,
   .vote-workspace,
+  #mainTab > .workspace,
+  .finance-workspace,
+  .admin-workspace,
   .analysis-summary {
     grid-template-columns: 1fr;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .summary-card.equipment {
+    grid-column: 1 / -1;
+  }
+
+  .summary-card {
+    min-height: 102px;
+    padding: 15px;
   }
 
   .fare-layout {
@@ -871,7 +898,16 @@ button:active {
   }
 
   .tab-nav {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .tab-button {
+    min-width: 0;
+    padding: 10px 4px;
+    font-size: 0.85rem;
   }
 
   .wide-panel,

@@ -686,17 +686,33 @@ onValue(dbRefs.routeVotes, (snapshot) => {
   render();
 });
 
-document.querySelectorAll(".tab-button").forEach((button) => {
-  button.addEventListener("click", () => {
-    const targetId = button.dataset.tabTarget;
-    document.querySelectorAll(".tab-button").forEach((item) => {
-      const active = item === button;
-      item.classList.toggle("active", active);
-      item.setAttribute("aria-selected", String(active));
-    });
-    document.querySelectorAll(".tab-page").forEach((page) => {
-      page.classList.toggle("active", page.id === targetId);
-    });
+const tabButtons = [...document.querySelectorAll(".tab-button")];
+
+function activateTab(button) {
+  const targetId = button.dataset.tabTarget;
+  tabButtons.forEach((item) => {
+    const active = item === button;
+    item.classList.toggle("active", active);
+    item.setAttribute("aria-selected", String(active));
+    item.tabIndex = active ? 0 : -1;
+  });
+  document.querySelectorAll(".tab-page").forEach((page) => {
+    page.classList.toggle("active", page.id === targetId);
+  });
+}
+
+tabButtons.forEach((button, index) => {
+  button.addEventListener("click", () => activateTab(button));
+  button.addEventListener("keydown", (event) => {
+    let nextIndex;
+    if (event.key === "ArrowRight") nextIndex = (index + 1) % tabButtons.length;
+    if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabButtons.length) % tabButtons.length;
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = tabButtons.length - 1;
+    if (nextIndex === undefined) return;
+    event.preventDefault();
+    activateTab(tabButtons[nextIndex]);
+    tabButtons[nextIndex].focus();
   });
 });
 
@@ -710,6 +726,7 @@ async function signInAdmin(email, password, messageSelector, passwordSelector) {
     await signInWithEmailAndPassword(auth, email, password);
     if (passwordSelector) $(passwordSelector).value = "";
     setAccessGranted(true);
+    activateTab(document.querySelector('[data-tab-target="adminTab"]'));
     setFormMessage(messageSelector, "登入成功。", true);
   } catch (error) {
     console.error(error);

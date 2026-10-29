@@ -82,47 +82,15 @@
 
       <section id="statusBar" class="status-bar">正在連線...</section>
 
-      <nav class="tab-nav" aria-label="網站分頁">
-        <button class="tab-button active" type="button" data-tab-target="mainTab" aria-selected="true">許願與報名</button>
-        <button class="tab-button" type="button" data-tab-target="voteTab" aria-selected="false">路線投票</button>
-        <button class="tab-button" type="button" data-tab-target="fareTab" aria-selected="false">費用分攤</button>
+      <nav class="tab-nav" role="tablist" aria-label="網站分頁">
+        <button id="mainTabButton" class="tab-button active" type="button" role="tab" data-tab-target="mainTab" aria-controls="mainTab" aria-selected="true" tabindex="0">許願與報名</button>
+        <button id="voteTabButton" class="tab-button" type="button" role="tab" data-tab-target="voteTab" aria-controls="voteTab" aria-selected="false" tabindex="-1">路線投票</button>
+        <button id="financeTabButton" class="tab-button" type="button" role="tab" data-tab-target="financeTab" aria-controls="financeTab" aria-selected="false" tabindex="-1">繳費與採購</button>
+        <button id="fareTabButton" class="tab-button" type="button" role="tab" data-tab-target="fareTab" aria-controls="fareTab" aria-selected="false" tabindex="-1">費用分攤</button>
+        <button id="adminTabButton" class="tab-button" type="button" role="tab" data-tab-target="adminTab" aria-controls="adminTab" aria-selected="false" tabindex="-1">管理</button>
       </nav>
 
-      <section id="mainTab" class="tab-page active">
-      <section class="admin-login-panel panel">
-        <div class="panel-heading compact">
-          <div>
-            <h2>管理者登入</h2>
-            <p id="adminStateText">尚未登入。登入後才能更新補助款與清空資料。</p>
-          </div>
-          <button id="adminLogout" class="ghost-button hidden" type="button">登出</button>
-        </div>
-        <form id="adminLoginForm" class="form-grid admin-login-form" autocomplete="off">
-          <label>
-            管理者 Email
-            <input id="adminEmail" type="email" autocomplete="off" required />
-          </label>
-          <label>
-            密碼
-            <input id="adminLoginPassword" type="password" autocomplete="new-password" required />
-          </label>
-          <button type="submit">登入管理</button>
-          <p id="loginMessage" class="form-message" role="status"></p>
-        </form>
-        <form id="adminPasswordForm" class="form-grid admin-login-form admin-only hidden">
-          <label>
-            新管理者密碼
-            <input id="newAdminPassword" type="password" minlength="8" autocomplete="new-password" required />
-          </label>
-          <label>
-            再輸入一次
-            <input id="confirmAdminPassword" type="password" minlength="8" autocomplete="new-password" required />
-          </label>
-          <button type="submit">修改密碼</button>
-          <p id="passwordMessage" class="form-message" role="status"></p>
-        </form>
-      </section>
-
+      <section id="mainTab" class="tab-page active" role="tabpanel" aria-labelledby="mainTabButton">
       <section class="workspace">
         <div class="panel">
           <div class="panel-heading">
@@ -171,6 +139,28 @@
             <button type="submit">新增報名</button>
           </form>
         </div>
+      </section>
+
+      <section class="lists">
+        <div class="list-panel">
+          <div class="panel-heading compact">
+            <h2>山岳許願清單</h2>
+            <button id="clearWishes" class="ghost-button admin-only hidden" type="button">清空</button>
+          </div>
+          <div id="wishList" class="entry-list empty"></div>
+        </div>
+        <div class="list-panel">
+          <div class="panel-heading compact">
+            <h2>報名清單</h2>
+            <button id="clearSignups" class="ghost-button admin-only hidden" type="button">清空</button>
+          </div>
+          <div id="signupList" class="entry-list empty"></div>
+        </div>
+      </section>
+      </section>
+
+      <section id="financeTab" class="tab-page" role="tabpanel" aria-labelledby="financeTabButton">
+      <section class="workspace finance-workspace">
 
         <div class="panel">
           <div class="panel-heading">
@@ -242,6 +232,69 @@
             <p id="equipmentPurchaseMessage" class="form-message" role="status"></p>
           </form>
         </div>
+      </section>
+
+      <section class="lists">
+        <div class="list-panel wide-panel">
+          <div class="panel-heading compact">
+            <h2>自助團繳費名冊</h2>
+            <button id="clearPayments" class="ghost-button admin-only hidden" type="button">清空</button>
+          </div>
+          <div id="paymentList" class="entry-list empty"></div>
+        </div>
+        <div class="list-panel subsidy-history-panel">
+          <div class="panel-heading compact">
+            <h2>活動補助款更新紀錄</h2>
+            <button id="clearSubsidyHistory" class="ghost-button admin-only hidden" type="button">清空</button>
+          </div>
+          <div id="subsidyHistoryList" class="entry-list empty"></div>
+        </div>
+        <div class="list-panel subsidy-history-panel">
+          <div class="panel-heading compact">
+            <h2>交通與設備補助款更新紀錄</h2>
+            <button id="clearEquipmentSubsidyHistory" class="ghost-button admin-only hidden" type="button">清空</button>
+          </div>
+          <div id="equipmentSubsidyHistoryList" class="entry-list empty"></div>
+        </div>
+      </section>
+      </section>
+
+      <section id="adminTab" class="tab-page" role="tabpanel" aria-labelledby="adminTabButton">
+      <section class="admin-login-panel panel">
+        <div class="panel-heading compact">
+          <div>
+            <h2>管理者登入</h2>
+            <p id="adminStateText">尚未登入。登入後才能更新補助款與清空資料。</p>
+          </div>
+          <button id="adminLogout" class="ghost-button hidden" type="button">登出</button>
+        </div>
+        <form id="adminLoginForm" class="form-grid admin-login-form" autocomplete="off">
+          <label>
+            管理者 Email
+            <input id="adminEmail" type="email" autocomplete="off" required />
+          </label>
+          <label>
+            密碼
+            <input id="adminLoginPassword" type="password" autocomplete="new-password" required />
+          </label>
+          <button type="submit">登入管理</button>
+          <p id="loginMessage" class="form-message" role="status"></p>
+        </form>
+        <form id="adminPasswordForm" class="form-grid admin-login-form admin-only hidden">
+          <label>
+            新管理者密碼
+            <input id="newAdminPassword" type="password" minlength="8" autocomplete="new-password" required />
+          </label>
+          <label>
+            再輸入一次
+            <input id="confirmAdminPassword" type="password" minlength="8" autocomplete="new-password" required />
+          </label>
+          <button type="submit">修改密碼</button>
+          <p id="passwordMessage" class="form-message" role="status"></p>
+        </form>
+      </section>
+
+      <section class="workspace admin-workspace">
 
         <div class="panel admin-panel admin-only hidden">
           <div class="panel-heading">
@@ -313,50 +366,9 @@
         </div>
       </section>
 
-      <section class="lists">
-        <div class="list-panel">
-          <div class="panel-heading compact">
-            <h2>山岳許願清單</h2>
-            <button id="clearWishes" class="ghost-button admin-only hidden" type="button">清空</button>
-          </div>
-          <div id="wishList" class="entry-list empty"></div>
-        </div>
-
-        <div class="list-panel">
-          <div class="panel-heading compact">
-            <h2>報名清單</h2>
-            <button id="clearSignups" class="ghost-button admin-only hidden" type="button">清空</button>
-          </div>
-          <div id="signupList" class="entry-list empty"></div>
-        </div>
-
-        <div class="list-panel wide-panel">
-          <div class="panel-heading compact">
-            <h2>自助團繳費名冊</h2>
-            <button id="clearPayments" class="ghost-button admin-only hidden" type="button">清空</button>
-          </div>
-          <div id="paymentList" class="entry-list empty"></div>
-        </div>
-
-        <div class="list-panel subsidy-history-panel">
-          <div class="panel-heading compact">
-            <h2>活動補助款更新紀錄</h2>
-            <button id="clearSubsidyHistory" class="ghost-button admin-only hidden" type="button">清空</button>
-          </div>
-          <div id="subsidyHistoryList" class="entry-list empty"></div>
-        </div>
-
-        <div class="list-panel subsidy-history-panel">
-          <div class="panel-heading compact">
-            <h2>交通與設備補助款更新紀錄</h2>
-            <button id="clearEquipmentSubsidyHistory" class="ghost-button admin-only hidden" type="button">清空</button>
-          </div>
-          <div id="equipmentSubsidyHistoryList" class="entry-list empty"></div>
-        </div>
-      </section>
       </section>
 
-      <section id="voteTab" class="tab-page">
+      <section id="voteTab" class="tab-page" role="tabpanel" aria-labelledby="voteTabButton">
         <section class="workspace vote-workspace">
           <div class="panel">
             <div class="panel-heading">
@@ -431,7 +443,7 @@
           </div>
         </section>
       </section>
-      <section id="fareTab" class="tab-page" aria-label="費用分攤">
+      <section id="fareTab" class="tab-page" role="tabpanel" aria-labelledby="fareTabButton">
         <div class="fare-layout">
           <section class="panel fare-input-panel">
             <div class="panel-heading">
@@ -480,7 +492,7 @@
     </main>
     </div>
 
-    <script type="module" src="app.js?v=subsidy-update-fix-20260703"></script>
+    <script type="module" src="app.js?v=layout-tabs-20261029"></script>
     <script type="module" src="fare-calculator.js"></script>
   </body>
 </html>
