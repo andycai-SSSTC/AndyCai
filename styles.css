@@ -363,6 +363,75 @@ h1 {
   display: block;
 }
 
+.fare-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.fare-people-control {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) 46px;
+  gap: 8px;
+}
+
+.fare-people-control input {
+  text-align: center;
+}
+
+.fare-people-control button {
+  min-height: 46px;
+  padding: 0;
+  font-size: 1.3rem;
+}
+
+.fare-message {
+  margin-bottom: 14px;
+  color: var(--muted);
+}
+
+.fare-message.error {
+  color: #973f2c;
+}
+
+.fare-results {
+  border-top: 1px solid var(--line);
+}
+
+.fare-result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 18px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.fare-result-row strong {
+  flex-shrink: 0;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.fare-result-primary {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.fare-result-primary strong {
+  color: var(--forest);
+  font-size: 1.4rem;
+}
+
+.fare-footnote {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -794,6 +863,10 @@ button:active {
   .pin-settings-form,
   .vote-workspace,
   .analysis-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .fare-layout {
     grid-template-columns: 1fr;
   }
 

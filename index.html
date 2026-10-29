@@ -85,6 +85,7 @@
       <nav class="tab-nav" aria-label="網站分頁">
         <button class="tab-button active" type="button" data-tab-target="mainTab" aria-selected="true">許願與報名</button>
         <button class="tab-button" type="button" data-tab-target="voteTab" aria-selected="false">路線投票</button>
+        <button class="tab-button" type="button" data-tab-target="fareTab" aria-selected="false">費用分攤</button>
       </nav>
 
       <section id="mainTab" class="tab-page active">
@@ -430,10 +431,57 @@
           </div>
         </section>
       </section>
+      <section id="fareTab" class="tab-page" aria-label="費用分攤">
+        <div class="fare-layout">
+          <section class="panel fare-input-panel">
+            <div class="panel-heading">
+              <h2>交通費用分攤</h2>
+              <p>試算社員先墊付的車資，以及補助撥款後可退還的金額。</p>
+            </div>
+            <form id="fareForm" class="form-grid" autocomplete="off">
+              <label>車資總費用（元）
+                <input id="fareTotal" type="number" inputmode="numeric" min="0" step="1" placeholder="例如：13000" required />
+              </label>
+              <label>預計社團補助（元）
+                <input id="fareSubsidy" type="number" inputmode="numeric" min="0" step="1" placeholder="沒有補助可留空" />
+              </label>
+              <label>分攤人數
+                <span class="fare-people-control">
+                  <button id="farePeopleMinus" class="ghost-button" type="button" aria-label="減少人數">−</button>
+                  <input id="farePeople" type="number" inputmode="numeric" min="1" step="1" placeholder="例如：4" required />
+                  <button id="farePeoplePlus" class="ghost-button" type="button" aria-label="增加人數">＋</button>
+                </span>
+              </label>
+              <label>每人墊付與退款取整至
+                <select id="fareRoundBase">
+                  <option value="10">10 元</option>
+                  <option value="50">50 元</option>
+                  <option value="100">100 元</option>
+                </select>
+              </label>
+            </form>
+          </section>
+          <section class="panel fare-result-panel" aria-live="polite">
+            <div class="panel-heading"><h2>試算結果</h2></div>
+            <p id="fareMessage" class="fare-message">輸入車資與人數後即可查看結果。</p>
+            <div id="fareResults" class="fare-results hidden">
+              <div class="fare-result-row"><span>車資總費用</span><strong id="fareOutTotal"></strong></div>
+              <div class="fare-result-row"><span>預計社團補助</span><strong id="fareOutSubsidy"></strong></div>
+              <div class="fare-result-row fare-result-primary"><span>現在每人先墊付</span><strong id="fareOutUpfront"></strong></div>
+              <div class="fare-result-row"><span>先墊付合計</span><strong id="fareOutCollected"></strong></div>
+              <div class="fare-result-row fare-result-primary"><span>補助入帳後每人退還</span><strong id="fareOutRefund"></strong></div>
+              <div class="fare-result-row"><span>退還後尾差</span><strong id="fareOutLeftover"></strong></div>
+              <div class="fare-result-row"><span>每人平均應負擔（參考）</span><strong id="fareOutPerPerson"></strong></div>
+            </div>
+            <p class="fare-footnote">墊付金額無條件進位，退款金額無條件捨去；尾差可留作下次公用費用。本頁僅供試算，不會更新補助款或繳費紀錄。</p>
+          </section>
+        </div>
+      </section>
     </main>
     </div>
 
     <script type="module" src="app.js?v=subsidy-update-fix-20260703"></script>
+    <script type="module" src="fare-calculator.js"></script>
   </body>
 </html>
 
